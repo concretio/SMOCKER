@@ -1,0 +1,313 @@
+{
+  "outputFormat": [
+    "di"
+  ],
+  "sObjects": [
+    {
+      "sObject": "contact",
+      "language": "en",
+      "count": 5,
+      "fields": {
+        "AccountId": {
+          "type": "reference",
+          "referenceTo": "Account",
+          "values": [],
+          "relationshipType": "lookup"
+        },
+        "LastName": {
+          "type": "text"
+        },
+        "FirstName": {
+          "type": "text"
+        },
+        "Salutation": {
+          "type": "picklist",
+          "values": [
+            "Mr.",
+            "Ms.",
+            "Mrs.",
+            "Dr.",
+            "Prof.",
+            "Mx."
+          ]
+        },
+        "OtherStreet": {
+          "type": "address"
+        },
+        "OtherCity": {
+          "type": "address"
+        },
+        "OtherState": {
+          "type": "address"
+        },
+        "OtherPostalCode": {
+          "type": "address"
+        },
+        "OtherCountry": {
+          "type": "address"
+        },
+        "OtherLatitude": {
+          "type": "double"
+        },
+        "OtherLongitude": {
+          "type": "double"
+        },
+        "OtherGeocodeAccuracy": {
+          "type": "picklist",
+          "values": [
+            "Address",
+            "NearAddress",
+            "Block",
+            "Street",
+            "ExtendedZip",
+            "Zip",
+            "Neighborhood",
+            "City",
+            "County",
+            "State",
+            "Unknown"
+          ]
+        },
+        "MailingStreet": {
+          "type": "address"
+        },
+        "MailingCity": {
+          "type": "address"
+        },
+        "MailingState": {
+          "type": "address"
+        },
+        "MailingPostalCode": {
+          "type": "address"
+        },
+        "MailingCountry": {
+          "type": "address"
+        },
+        "MailingLatitude": {
+          "type": "double"
+        },
+        "MailingLongitude": {
+          "type": "double"
+        },
+        "MailingGeocodeAccuracy": {
+          "type": "picklist",
+          "values": [
+            "Address",
+            "NearAddress",
+            "Block",
+            "Street",
+            "ExtendedZip",
+            "Zip",
+            "Neighborhood",
+            "City",
+            "County",
+            "State",
+            "Unknown"
+          ]
+        },
+        "Phone": {
+          "type": "phone"
+        },
+        "Fax": {
+          "type": "phone"
+        },
+        "MobilePhone": {
+          "type": "phone"
+        },
+        "HomePhone": {
+          "type": "phone"
+        },
+        "OtherPhone": {
+          "type": "phone"
+        },
+        "AssistantPhone": {
+          "type": "phone"
+        },
+        "ReportsToId": {
+          "type": "reference",
+          "referenceTo": "Contact",
+          "values": [],
+          "relationshipType": "lookup"
+        },
+        "Email": {
+          "type": "email"
+        },
+        "Title": {
+          "type": "text"
+        },
+        "Department": {
+          "type": "text"
+        },
+        "AssistantName": {
+          "type": "text"
+        },
+        "LeadSource": {
+          "type": "picklist",
+          "values": [
+            "Web",
+            "Phone Inquiry",
+            "Partner Referral",
+            "Purchased List",
+            "Other"
+          ]
+        },
+        "Birthdate": {
+          "type": "date"
+        },
+        "Description": {
+          "type": "text"
+        },
+        "OwnerId": {
+          "type": "reference",
+          "referenceTo": "User",
+          "values": [],
+          "relationshipType": "master-detail"
+        },
+        "EmailBouncedReason": {
+          "type": "text"
+        },
+        "EmailBouncedDate": {
+          "type": "datetime"
+        },
+        "Jigsaw": {
+          "type": "text"
+        },
+        "CleanStatus": {
+          "type": "picklist",
+          "values": [
+            "Matched",
+            "Different",
+            "Acknowledged",
+            "NotFound",
+            "Inactive",
+            "Pending",
+            "SelectMatch",
+            "Skipped"
+          ]
+        },
+        "IndividualId": {
+          "type": "reference",
+          "referenceTo": "Individual",
+          "values": [],
+          "relationshipType": "lookup"
+        },
+        "ContactSource": {
+          "type": "picklist",
+          "values": [
+            "Auto Create"
+          ]
+        },
+        "Level__c": {
+          "type": "picklist",
+          "values": [
+            "Secondary",
+            "Tertiary",
+            "Primary"
+          ]
+        },
+        "Languages__c": {
+          "type": "text"
+        },
+        "Test__c": {
+          "type": "text"
+        },
+        "Country__c": {
+          "type": "dependent-picklist",
+          "values": [
+            "INDIA",
+            "USA",
+            "SRI-LANKA"
+          ],
+          "child-dependent-field": "State__c",
+          "State__c": {
+            "INDIA": {
+              "values": [
+                "Rajasthan",
+                "Punjab",
+                "Gujrat"
+              ],
+              "child-dependent-field": "City__c",
+              "City__c": {
+                "Rajasthan": {
+                  "values": [
+                    "Jaipur",
+                    "Udaipur",
+                    "Jodhpur"
+                  ]
+                },
+                "Punjab": {
+                  "values": [
+                    "Chandigarh",
+                    "Amritsar",
+                    "Ludhiana"
+                  ]
+                },
+                "Gujrat": {
+                  "values": [
+                    "Ahmedabad",
+                    "Surat",
+                    "Vadodara"
+                  ]
+                }
+              }
+            },
+            "USA": {
+              "values": [
+                "California",
+                "New York",
+                "Texas"
+              ],
+              "child-dependent-field": "City__c",
+              "City__c": {
+                "California": {
+                  "values": [
+                    "Los Angeles",
+                    "San Francisco",
+                    "San Diego"
+                  ]
+                },
+                "New York": {
+                  "values": [
+                    "New York City",
+                    "Buffalo",
+                    "Rochester"
+                  ]
+                },
+                "Texas": {
+                  "values": [
+                    "Houston",
+                    "Dallas",
+                    "Austin"
+                  ]
+                }
+              }
+            },
+            "SRI-LANKA": {
+              "values": [
+                "Western Province",
+                "Central Province"
+              ],
+              "child-dependent-field": "City__c",
+              "City__c": {
+                "Western Province": {
+                  "values": [
+                    "Colombo",
+                    "Negombo",
+                    "Kalutara"
+                  ]
+                },
+                "Central Province": {
+                  "values": [
+                    "Kandy",
+                    "Nuwara Eliya",
+                    "Hatton"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
