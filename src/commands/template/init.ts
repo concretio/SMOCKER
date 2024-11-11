@@ -39,7 +39,7 @@ import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 
 // Import messages from the specified directory
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
-const messages = Messages.loadMessages('smocker', 'template.init');
+const messages = Messages.loadMessages('smocker-concretio', 'template.init');
 
 /* ------------------- Types ---------------------- */
 export type SetupInitResult = {

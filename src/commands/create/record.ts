@@ -35,7 +35,7 @@ import fetch from 'node-fetch';
 import { templateAddFlags } from '../template/add.js';
 const fieldsConfigFile = 'generated_output.json';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
-const messages = Messages.loadMessages('smocker', 'create.record');
+const messages = Messages.loadMessages('smocker-concretio', 'create.record');
 let depthForRecord = 0;
 // let orgConnection: any;
 export type CreateRecordResult = { path: string };

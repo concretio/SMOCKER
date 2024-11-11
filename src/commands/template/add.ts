@@ -25,7 +25,7 @@ import chalk from 'chalk';
 import { askQuestion } from './init.js';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
-const messages = Messages.loadMessages('smocker', 'template.add');
+const messages = Messages.loadMessages('smocker-concretio', 'template.add');
 
 export type TemplateAddResult = {
   path: string;

@@ -26,7 +26,7 @@ import { loading } from 'cli-loading-animation';
 import Spinner from 'cli-spinners';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
-const messages = Messages.loadMessages('smocker', 'template.validate');
+const messages = Messages.loadMessages('smocker-concretio', 'template.validate');
 
 export type TemplateValidateResult = {
   path: string;

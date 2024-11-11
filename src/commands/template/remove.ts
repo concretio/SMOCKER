@@ -23,9 +23,8 @@ import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import chalk from 'chalk';
 
-
 Messages.importMessagesDirectory(path.dirname(fileURLToPath(import.meta.url)));
-const messages = Messages.loadMessages('smocker', 'template.remove');
+const messages = Messages.loadMessages('smocker-concretio', 'template.remove');
 
 /* 
 Removing specified configuration options from the given configObject based on provided flags.
@@ -34,11 +33,9 @@ export function removeOrDeleteConfig(
   configMap: any,
   flags: any,
   allowedFlags: string[],
-  log: (message: string) => void,
+  log: (message: string) => void
 ) {
   const arrayFlags = ['namespaceToExclude', 'outputFormat', 'fieldsToExclude'];
-
-  
 
   for (const [key, value] of Object.entries(flags)) {
     if (allowedFlags.includes(key) && value !== undefined) {
@@ -49,20 +46,21 @@ export function removeOrDeleteConfig(
           .filter(Boolean);
 
         if (Array.isArray(configMap[key])) {
-
           const notFoundValues: string[] = [];
           const foundValues: string[] = [];
 
           if (key === 'outputFormat') {
             if (configMap[key].length - valuesArray.length < 1) {
-                throw new Error(`Error: All the values from 'outputFormat' cannot be deleted! You must leave at least one value.`);
+              throw new Error(
+                `Error: All the values from 'outputFormat' cannot be deleted! You must leave at least one value.`
+              );
             }
-    
+
             if (valuesArray.length === 0) {
-                throw new Error("Error: The '-f' (outputFormat) flag cannot be empty or contain only invalid values.");
+              throw new Error("Error: The '-f' (outputFormat) flag cannot be empty or contain only invalid values.");
             }
-          } 
-    
+          }
+
           valuesArray.forEach((item) => {
             const index = configMap[key].indexOf(item);
             if (index > -1) {
@@ -85,8 +83,7 @@ export function removeOrDeleteConfig(
         delete configMap[key];
         log(`Flag: ${key} is removed from the "${flags.sObject}" settings`);
       }
-    } 
-    else {
+    } else {
       if (key !== 'templateName' && key !== 'sObject') {
         throw new Error(`Error: Default ${key} can not be deleted! You can update instead.`);
       }
@@ -136,150 +133,143 @@ export default class TemplateRemove extends SfCommand<void> {
   public static readonly flags = TemplateRemove.templateAddFlags;
 
   public async run(): Promise<void> {
-
     const { flags } = await this.parse(TemplateRemove);
 
     const flagKeys = Object.keys(flags);
 
     const filename = flags.templateName.includes('.json') ? flags.templateName : flags.templateName + '.json';
-   
 
-      const __cwd = process.cwd();
-      const dataGenDirPath = path.join(__cwd, 'data_gen');
-      const templateDirPath = path.join(dataGenDirPath, 'templates');
+    const __cwd = process.cwd();
+    const dataGenDirPath = path.join(__cwd, 'data_gen');
+    const templateDirPath = path.join(dataGenDirPath, 'templates');
 
-      if (!fs.existsSync(templateDirPath)) {
-        this.error(`Template directory does not exist at ${templateDirPath}. Please initialize the setup first.`);
-      }
+    if (!fs.existsSync(templateDirPath)) {
+      this.error(`Template directory does not exist at ${templateDirPath}. Please initialize the setup first.`);
+    }
 
-      if (!filename) {
-        this.error('Error: You must specify a filename using the --templateName flag.');
-      }
+    if (!filename) {
+      this.error('Error: You must specify a filename using the --templateName flag.');
+    }
 
-      const configFilePath = path.join(templateDirPath, filename);
+    const configFilePath = path.join(templateDirPath, filename);
 
-      if (!fs.existsSync(configFilePath)) {
-        this.error(`Data Template file not found at ${configFilePath}`);
-      }
+    if (!fs.existsSync(configFilePath)) {
+      this.error(`Data Template file not found at ${configFilePath}`);
+    }
 
-      let config = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
+    let config = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
 
-      if (flagKeys.length === 1 && flagKeys.includes('templateName')) {
-        this.error('Error: Data Template File can not be deleted! You must specify at least one setting flag to remove');
-      }
+    if (flagKeys.length === 1 && flagKeys.includes('templateName')) {
+      this.error('Error: Data Template File can not be deleted! You must specify at least one setting flag to remove');
+    }
 
-      const objectNames = flags.sObject ? flags.sObject.split(',').map((obj) => obj.trim().toLowerCase()) : undefined;
+    const objectNames = flags.sObject ? flags.sObject.split(',').map((obj) => obj.trim().toLowerCase()) : undefined;
 
-      
-
-      let allowedFlags: string[] = [];
-      let configFile: any = {};
+    let allowedFlags: string[] = [];
+    let configFile: any = {};
 
     /*
     Handling object level configuration
     */
-      if (objectNames) {
-        
-        if (flags.namespaceToExclude) {
-              throw new Error(`You cannot use global flag "namespaceToExclude" with an SObject flag.`);
-        }
-
-        if (flags.outputFormat) {
-              throw new Error(`You cannot use global flag "outputFormat" with an SObject flag.`);
-        }
-
-        if (!Array.isArray(config.sObjects)) {
-          throw new Error("The 'sObjects' configuration is missing in the template data file.");
-        }
-
-        objectNames.forEach((objectName) => {
-          const lowerCaseObjectName = objectName.toLowerCase();
-
-          const objectIndex = config.sObjects.findIndex(
-            (obj: string) => Object.keys(obj)[0].toLowerCase() === lowerCaseObjectName,
-          );
-
-          if (objectIndex === -1) {
-            this.error(chalk.yellow(`Object '${objectName}' does not exist in data template file.`));
-          } 
-          
-          else {
-
-            allowedFlags = ['fieldsToExclude', 'language', 'count'];
-
-            if (flagKeys.includes('sObject') && Object.keys(flags).length === 2) {
-              config.sObjects.splice(objectIndex, 1);
-              this.log(chalk.green(`Object '${objectName}' has been removed from the data template file.`));
-            }
-
-
-            // If flags are provided, modify the object configuration
-            else {
-              const objectConfig = config.sObjects[objectIndex];
-              const currentObjectName = Object.keys(objectConfig)[0];
-              configFile = objectConfig[currentObjectName];
-
-              const missingFlags: string[] = [];
-
-              // Check each flag and dynamically collect missing or invalid flags
-              if (flags.count && !configFile.count) {
-                missingFlags.push('-c (count)');
-              }
-              if (flags.language && !configFile.language) {
-                missingFlags.push('-l (language)');
-              }
-              
-              if (flags.fieldsToExclude) {
-
-                const fieldsArray = flags.fieldsToExclude.split(',').map(item => item.trim()).filter(Boolean);
-                
-                if (fieldsArray.length === 0) {
-                  this.error("Error: The '-e' (fieldsToExclude) flag cannot be empty or contain only invalid values.");
-                }
-
-                if (!configFile.fieldsToExclude || configFile.fieldsToExclude.length === 0) {
-                  missingFlags.push('-e (fieldsToExclude)');
-                }
-
-              }
-
-              if (missingFlags.length > 0) {
-                this.error(
-                  `Error: Can not remove '${missingFlags.join(', ')}.' as it does not exist on ${currentObjectName} settings.`,
-                );
-              }
-            }
-          }
-        });
-      }     
-      /*
-      Handling object level configuration
-      */  
-      else {
-
-        if (flags.namespaceToExclude) {
-          const fieldsArray = flags.namespaceToExclude.split(',')
-          .map(item => item.trim())
-          .filter(Boolean);
-          if (fieldsArray.length === 0) {
-            this.error("Error: The '-e' (namespaceToExclude) flag cannot be empty or contain only invalid values.");
-          }
-        }
-
-        if (flags.fieldsToExclude) {
-          if (!flags.sObject) {
-            this.error("Error: The '-e' (fieldsToExclude) flag requires the '-o' (sObject) flag.");
-          }
-        }        
-        configFile = config;
-        allowedFlags = ['outputFormat', 'namespaceToExclude'];
+    if (objectNames) {
+      if (flags.namespaceToExclude) {
+        throw new Error(`You cannot use global flag "namespaceToExclude" with an SObject flag.`);
       }
 
-      // Call a function to remove/delete the configuration
-      removeOrDeleteConfig(configFile, flags, allowedFlags, this.log.bind(this));
+      if (flags.outputFormat) {
+        throw new Error(`You cannot use global flag "outputFormat" with an SObject flag.`);
+      }
 
-      fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8');
+      if (!Array.isArray(config.sObjects)) {
+        throw new Error("The 'sObjects' configuration is missing in the template data file.");
+      }
 
-      this.log(chalk.green(`Success: Configuration updated in data template file`));
+      objectNames.forEach((objectName) => {
+        const lowerCaseObjectName = objectName.toLowerCase();
+
+        const objectIndex = config.sObjects.findIndex(
+          (obj: string) => Object.keys(obj)[0].toLowerCase() === lowerCaseObjectName
+        );
+
+        if (objectIndex === -1) {
+          this.error(chalk.yellow(`Object '${objectName}' does not exist in data template file.`));
+        } else {
+          allowedFlags = ['fieldsToExclude', 'language', 'count'];
+
+          if (flagKeys.includes('sObject') && Object.keys(flags).length === 2) {
+            config.sObjects.splice(objectIndex, 1);
+            this.log(chalk.green(`Object '${objectName}' has been removed from the data template file.`));
+          }
+
+          // If flags are provided, modify the object configuration
+          else {
+            const objectConfig = config.sObjects[objectIndex];
+            const currentObjectName = Object.keys(objectConfig)[0];
+            configFile = objectConfig[currentObjectName];
+
+            const missingFlags: string[] = [];
+
+            // Check each flag and dynamically collect missing or invalid flags
+            if (flags.count && !configFile.count) {
+              missingFlags.push('-c (count)');
+            }
+            if (flags.language && !configFile.language) {
+              missingFlags.push('-l (language)');
+            }
+
+            if (flags.fieldsToExclude) {
+              const fieldsArray = flags.fieldsToExclude
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean);
+
+              if (fieldsArray.length === 0) {
+                this.error("Error: The '-e' (fieldsToExclude) flag cannot be empty or contain only invalid values.");
+              }
+
+              if (!configFile.fieldsToExclude || configFile.fieldsToExclude.length === 0) {
+                missingFlags.push('-e (fieldsToExclude)');
+              }
+            }
+
+            if (missingFlags.length > 0) {
+              this.error(
+                `Error: Can not remove '${missingFlags.join(
+                  ', '
+                )}.' as it does not exist on ${currentObjectName} settings.`
+              );
+            }
+          }
+        }
+      });
+    } else {
+      /*
+      Handling object level configuration
+      */
+      if (flags.namespaceToExclude) {
+        const fieldsArray = flags.namespaceToExclude
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean);
+        if (fieldsArray.length === 0) {
+          this.error("Error: The '-e' (namespaceToExclude) flag cannot be empty or contain only invalid values.");
+        }
+      }
+
+      if (flags.fieldsToExclude) {
+        if (!flags.sObject) {
+          this.error("Error: The '-e' (fieldsToExclude) flag requires the '-o' (sObject) flag.");
+        }
+      }
+      configFile = config;
+      allowedFlags = ['outputFormat', 'namespaceToExclude'];
+    }
+
+    // Call a function to remove/delete the configuration
+    removeOrDeleteConfig(configFile, flags, allowedFlags, this.log.bind(this));
+
+    fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8');
+
+    this.log(chalk.green(`Success: Configuration updated in data template file`));
   }
 }

@@ -13,7 +13,7 @@ import path from 'node:path';
 import chalk from 'chalk';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
-const messages = Messages.loadMessages('smocker', 'template.print');
+const messages = Messages.loadMessages('smocker-concretio', 'template.print');
 
 export type TemplatePrintResult = {
   path: string;
