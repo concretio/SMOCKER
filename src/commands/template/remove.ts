@@ -72,7 +72,7 @@ export function removeOrDeleteConfig(
           });
 
           if (notFoundValues.length > 0) {
-            log(`Skipping: ${notFoundValues.join(', ')} do/ does not found in ${key}`);
+            throw new Error(`${notFoundValues.join(', ')} is not found in ${key}`);
           }
 
           if (foundValues.length > 0) {
