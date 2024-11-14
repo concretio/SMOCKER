@@ -49,18 +49,6 @@ export function removeOrDeleteConfig(
           const notFoundValues: string[] = [];
           const foundValues: string[] = [];
 
-          if (key === 'outputFormat') {
-            if (configMap[key].length - valuesArray.length < 1) {
-              throw new Error(
-                `Error: All the values from 'outputFormat' cannot be deleted! You must leave at least one value.`
-              );
-            }
-
-            if (valuesArray.length === 0) {
-              throw new Error("Error: The '-f' (outputFormat) flag cannot be empty or contain only invalid values.");
-            }
-          }
-
           valuesArray.forEach((item) => {
             const index = configMap[key].indexOf(item);
             if (index > -1) {
@@ -72,16 +60,36 @@ export function removeOrDeleteConfig(
           });
 
           if (notFoundValues.length > 0) {
-            throw new Error(`${notFoundValues.join(', ')} is not found in ${key}`);
+            if (flags.sObject) {
+              throw new Error(`${notFoundValues.join(', ')} is not found in ${key} object "${flags.sObject}" settings`);
+            } else {
+              throw new Error(`${notFoundValues.join(', ')} is not found in ${key}`);
+            }
+          }
+
+          if (key === 'outputFormat') {
+            if (configMap[key].length === 0) {
+              throw new Error(
+                `Error: All the values from 'outputFormat' cannot be deleted! You must leave at least one value.`
+              );
+            }
+
+            if (valuesArray.length === 0) {
+              throw new Error("Error: The '-f' (outputFormat) flag cannot be empty or contain only invalid values.");
+            }
           }
 
           if (foundValues.length > 0) {
-            log(`Value(s):'${foundValues.join(', ')}' is removed from '${key}'`);
+            if (flags.sObject) {
+              log(`Removing:'${foundValues.join(', ')}' from '${key}' object "${flags.sObject}" settings `);
+            } else {
+              log(`Removing:'${foundValues.join(', ')}' from '${key}'`);
+            }
           }
         }
       } else {
         delete configMap[key];
-        log(`Flag: ${key} is removed from the "${flags.sObject}" settings`);
+        log(`Removing: ${key} from the "${flags.sObject}" settings`);
       }
     } else {
       if (key !== 'templateName' && key !== 'sObject') {
@@ -227,7 +235,7 @@ export default class TemplateRemove extends SfCommand<void> {
                 this.error("Error: The '-e' (fieldsToExclude) flag cannot be empty or contain only invalid values.");
               }
 
-              if (!configFile.fieldsToExclude || configFile.fieldsToExclude.length === 0) {
+              if (!configFile.fieldsToExclude) {
                 missingFlags.push('-e (fieldsToExclude)');
               }
             }
