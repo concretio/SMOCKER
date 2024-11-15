@@ -91,6 +91,13 @@ export const validateConfigJson = async (connection: Connection, configPath: str
       const getAllFields = sObjectMeta.fields
         ? sObjectMeta.fields.map((field: any) => field.fullName.toLowerCase())
         : [];
+
+      /*
+    handling the name field for the custom object
+    */
+      if (sObjectMeta.nameField) {
+        getAllFields.push('name');
+      }
       const fieldsToExclude = sObjectData['fieldsToExclude'] || [];
       const invalidFields = fieldsToExclude.filter((field: string) => !getAllFields.includes(field));
       if (invalidFields.length > 0) {
