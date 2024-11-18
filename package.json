@@ -119,6 +119,5 @@
     }
   },
   "exports": "./lib/index.js",
-  "type": "module",
-  "author": "kunalvishnani"
+  "type": "module"
 }
