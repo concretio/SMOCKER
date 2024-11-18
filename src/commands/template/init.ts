@@ -1,42 +1,18 @@
-/* eslint-disable spaced-comment */
-/* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/unbound-method */
-/* eslint-disable sf-plugin/no-hardcoded-messages-flags */
 /* eslint-disable complexity */
-/* eslint-disable no-constant-condition */
-/* eslint-disable @typescript-eslint/quotes */
-/* eslint-disable import/order */
-/* eslint-disable @typescript-eslint/prefer-nullish-coalescing */
-/* eslint-disable @typescript-eslint/restrict-plus-operands */
-/* eslint-disable eqeqeq */
-/* eslint-disable @typescript-eslint/explicit-member-accessibility */
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable sf-plugin/command-summary */
-/* eslint-disable sf-plugin/command-example */
-/* eslint-disable class-methods-use-this */
 /* eslint-disable no-console */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable no-await-in-loop */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable no-param-reassign */
-/* eslint-disable no-underscore-dangle */
-/* eslint-disable @typescript-eslint/require-await */
-/* eslint-disable import/no-extraneous-dependencies */
+
 import * as readline from 'node:readline';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import chalk from 'chalk';
 import { loading } from 'cli-loading-animation';
 import Spinner from 'cli-spinners';
-import { getConnectionWithSalesforce, validateConfigJson } from '../template/validate.js';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import Enquirer from 'enquirer';
+import { getConnectionWithSalesforce, validateConfigJson } from '../template/validate.js';
 
 // Import messages from the specified directory
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
@@ -63,9 +39,9 @@ type typeSObjectSettingsMap = {
 /*
  Create data_gen structure on current CLI path.
 */
-async function handleDirStruct(): Promise<string> {
-  const __cwd = process.cwd();
-  const dataGenDirPath = path.join(__cwd, 'data_gen');
+function handleDirStruct(): string {
+  const cwd = process.cwd();
+  const dataGenDirPath = path.join(cwd, 'data_gen');
   const templateDirPath = path.join(dataGenDirPath, 'templates');
   const outputDirPath = path.join(dataGenDirPath, 'output');
   try {
@@ -77,11 +53,11 @@ async function handleDirStruct(): Promise<string> {
     if (!fs.existsSync(outputDirPath)) fs.mkdirSync(outputDirPath, { recursive: true });
     return dataGenDirPath;
   } catch (err) {
-    throw new Error(`Failed to create 'data_gen' directory structure on path ${__cwd}`);
+    throw new Error(`Failed to create 'data_gen' directory structure on path ${cwd}`);
   }
 }
 
-  async function runMultiSelectPrompt() {
+  async function runMultiSelectPrompt(): Promise<string[]> {
     try {
       type Answers = {
         choices: string[]; 
@@ -107,7 +83,7 @@ async function handleDirStruct(): Promise<string> {
     }
   }
   
-  async function runSelectPrompt(question: string, myChoices: Array<{name: string; message: string; value: string; hint?: string}>) {
+  async function runSelectPrompt(question: string, myChoices: Array<{name: string; message: string; value: string; hint?: string}>): Promise<string> {
     try {
       type Answers = {
         choices: string; 
@@ -123,16 +99,17 @@ async function handleDirStruct(): Promise<string> {
       return answers.choices;
     } catch (error) {
       console.error('Error:', error);
-      return [];
+      return '';
     }
   }  
 
 /*
   This function validate the template name and checks the suffix.
 */
-async function validateTemplateName(fileName: string, templatePath: string): Promise<string> {
+async function validateTemplateName(fileNameParam: string, templatePath: string): Promise<string> {
   const suffix1 = '_data_template.json';
   const suffix2 = '_data_template';
+  let fileName = fileNameParam;
   if (fileName.toLowerCase().endsWith(suffix2)) {
     fileName += '.json';
   } else if (!fileName.toLowerCase().endsWith(suffix1)) {
@@ -148,7 +125,7 @@ async function validateTemplateName(fileName: string, templatePath: string): Pro
       chalk.yellow('Warning: Template name already exists! Do you want to overwrite? (Y/n)'),
       'n'
     );
-    if (fileNameExists.toLowerCase() == 'yes' || fileNameExists.toLowerCase() == 'y') {
+    if (fileNameExists.toLowerCase() === 'yes' || fileNameExists.toLowerCase() === 'y') {
       return fileName;
     } else {
       const newFileName = await askQuestion('Enter new template file name');
@@ -170,19 +147,22 @@ export const askQuestion = (query: string, defaultValue?: string): Promise<strin
     const promptQuery = defaultValue ? `${query} (default: ${defaultValue}): ` : `${query}: `;
     rl.question(promptQuery, (answer) => {
       rl.close();
-      resolve(answer || defaultValue || '');
+      resolve(answer ?? defaultValue ?? '');
     });
   });
 };
 
-/*
- Main body
-*/
 export default class SetupInit extends SfCommand<SetupInitResult> {
+  public static readonly summary: string = messages.getMessage('summary');
+  public static readonly examples = [
+    messages.getMessage('Examples')
+  ];
+
+
   public static readonly flags = {
     default: Flags.boolean({
-      summary: messages.getMessage('flags.name.summary'),
-      description: messages.getMessage('flags.name.description'),
+      summary: messages.getMessage('flags.default.summary'),
+      description: messages.getMessage('flags.default.description'),
       char: 't',
       required: false,
     }),
@@ -194,8 +174,9 @@ public async run(): Promise<SetupInitResult> {
       clearOnEnd: true,
       spinner: Spinner.line2,
     });
+    
     start();
-    const dirname = await handleDirStruct();
+    const dirname = handleDirStruct();
     const templatePath = path.join(dirname, 'templates');
     // const connection = await getConnectionWithSalesforce();
     stop();
@@ -258,7 +239,7 @@ public async run(): Promise<SetupInitResult> {
         `;
 
       // Parse the string to ensure it's valid JSON before continuing
-      const jsonObject = JSON.parse(defaultTemplate);
+      const jsonObject = JSON.parse(defaultTemplate) as SetupInitResult;
 
       // Write the JSON object to the file with custom formatting
       fs.writeFileSync(defaultTemplatePath, defaultTemplate, 'utf8');
@@ -273,7 +254,7 @@ public async run(): Promise<SetupInitResult> {
     const temporaryFileName: string = await askQuestion(
       'Provide descriptive name for the template data file' + chalk.dim(' (e.g., validate_Account_creation)')
     );
-    if (temporaryFileName == null || temporaryFileName == undefined || temporaryFileName == '')
+    if (temporaryFileName == null || temporaryFileName === undefined || temporaryFileName === '')
       throw new Error('Please provide template data file name.');
     const templateFileName = await validateTemplateName(temporaryFileName, templatePath);
 
@@ -294,15 +275,15 @@ public async run(): Promise<SetupInitResult> {
           .filter(Boolean)
       : [];
 
-    const validFormats = new Set(['csv', 'json', 'di']);
+    // const validFormats = new Set(['csv', 'json', 'di']);
+    // && outputFormat.every((format) => validFormats.has(format))
     let outputFormat: string[] = [];
-    while (true) {
+    while (!(outputFormat.length > 0)) {
       const outputFormatValue = await runMultiSelectPrompt();
       outputFormat = outputFormatValue.map((format) => format.toLowerCase());
-      if (outputFormat.length > 0 && outputFormat.every((format) => validFormats.has(format))) {
-        break;
+      if (!(outputFormat.length > 0)) {
+        console.log(chalk.yellow('Invalid input. Please enter only CSV, JSON, or DI.'));
       }
-      console.log(chalk.yellow('Invalid input. Please enter only CSV, JSON, or DI.'));
     }
 
     /* generate data in language */   
@@ -310,26 +291,28 @@ public async run(): Promise<SetupInitResult> {
         { name: 'en', message: 'en', value: 'en', hint: 'English (US)'}, 
         { name: 'jp', message: 'jp', value: 'jp', hint: 'Japanese'}, 
       ]; 
-    const language = await runSelectPrompt('In which language would you like to generate test data?', languageChoices) as string;
+    const language = await runSelectPrompt('In which language would you like to generate test data?', languageChoices);
 
     /* record count */
+    
     let count = 0;
-    while (true) {
-      const countValue = await askQuestion(
+    while (count === 0) {
+      const preSanitizedCount = parseInt(await askQuestion(
         'Specify the number of test data records to generate' + chalk.dim(' (e.g., 5)'),
         '1'
-      );
-      count = parseInt(countValue, 10);
-      if (count > 0 && count <= 200 && outputFormat.includes('di') && !isNaN(count)) {
+      ), 10);
+      if (preSanitizedCount > 0 && preSanitizedCount <= 200 && outputFormat.includes('di') && !isNaN(preSanitizedCount)) {
+        count = preSanitizedCount;
         break;
-      } else if (count > 0 && count !== undefined && !isNaN(count) && !outputFormat.includes('di')) {
+      } else if (preSanitizedCount > 0 && preSanitizedCount <= 1000 && preSanitizedCount !== undefined && !isNaN(preSanitizedCount) && !outputFormat.includes('di')) {
+        count = preSanitizedCount;
         break;
       }
 
       if (outputFormat.includes('di')) {
         console.log(chalk.yellow('Invalid input. Please enter between 1-200, with DI- direct insertion'));
       } else {
-        console.log(chalk.yellow('Invalid input. Please enter valid number'));
+        console.log(chalk.yellow('Invalid input. Please enter valid number 1-1000'));
       }
     }
 
@@ -360,7 +343,7 @@ public async run(): Promise<SetupInitResult> {
         value: obj
       }));
       
-      const sObjectName = await runSelectPrompt('Which Object(API name) would you like to override the global settings for?', objInTemplateChoices) as string;
+      const sObjectName = await runSelectPrompt('Which Object(API name) would you like to override the global settings for?', objInTemplateChoices);
       if (!sObjectName) {
         overwriteGlobalSettings = await askQuestion(
           'Would you like to customize settings for individual SObjects? (Y/n)',
@@ -372,7 +355,7 @@ public async run(): Promise<SetupInitResult> {
         continue;
       }
 
-      if (objectsToConfigure.length == 0) {
+      if (objectsToConfigure.length === 0) {
         objectsToConfigure.push('lead');
       }
 
@@ -421,7 +404,7 @@ public async run(): Promise<SetupInitResult> {
       }
 
       // Note:languageChoices is defined above already
-      const ovrrideSelectedLangVal = await runSelectPrompt(`[${sObjectName}] Language in which test data should be generated`, languageChoices) as string;
+      const ovrrideSelectedLangVal = await runSelectPrompt(`[${sObjectName}] Language in which test data should be generated`, languageChoices);
       if (ovrrideSelectedLangVal) {
         sObjectSettingsMap[sObjectName].language = ovrrideSelectedLangVal;
       }
@@ -455,7 +438,7 @@ public async run(): Promise<SetupInitResult> {
       chalk.bold('Do you want to validate the added sObjects and their fields from your org?(Y/n)'),
       'n'
     );
-    if (wantToValidate.toLowerCase() == 'yes' || wantToValidate.toLowerCase() == 'y') {
+    if (wantToValidate.toLowerCase() === 'yes' || wantToValidate.toLowerCase() === 'y') {
       const connection = await getConnectionWithSalesforce();
       console.log(chalk.cyan('Success: SF Connection established.'));
       await validateConfigJson(connection, filePath);
@@ -464,7 +447,7 @@ public async run(): Promise<SetupInitResult> {
     console.log(chalk.green(`Success: ${templateFileName} created at ${filePath}`));
     return config;
   }
-  log(arg0: string) {
-    throw new Error('Method not implemented.');
-  }
+  // log(arg0: string) {
+  //   throw new Error('Method not implemented.');
+  // }
 }
