@@ -1,3 +1,4 @@
+/* eslint-disable spaced-comment */
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable sf-plugin/no-hardcoded-messages-flags */
@@ -32,10 +33,10 @@ import * as path from 'node:path';
 import chalk from 'chalk';
 import { loading } from 'cli-loading-animation';
 import Spinner from 'cli-spinners';
-import cliSelect from 'cli-select';
 import { getConnectionWithSalesforce, validateConfigJson } from '../template/validate.js';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
+import Enquirer from 'enquirer';
 
 // Import messages from the specified directory
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
@@ -79,6 +80,52 @@ async function handleDirStruct(): Promise<string> {
     throw new Error(`Failed to create 'data_gen' directory structure on path ${__cwd}`);
   }
 }
+
+  async function runMultiSelectPrompt() {
+    try {
+      type Answers = {
+        choices: string[]; 
+      };
+
+      const outputChoices = [
+        { name: 'DI',   message: 'DI',   value: 'di', hint: 'Create records into org (limit- upto 200)'}, 
+        { name: 'JSON', message: 'JSON', value: 'json' }, 
+        { name: 'CSV',  message: 'CSV',  value: 'csv' } 
+      ];
+
+      const answers = await Enquirer.prompt<Answers>({
+        type: 'multiselect',
+        name: 'choices',
+        message: 'Provide output format for generated records [CSV, JSON, and DI-Direct Insertion Supported]',
+        choices: outputChoices,
+      });
+
+      return answers.choices;
+    } catch (error) {
+      console.error('Error:', error);
+      return [];
+    }
+  }
+  
+  async function runSelectPrompt(question: string, myChoices: Array<{name: string; message: string; value: string; hint?: string}>) {
+    try {
+      type Answers = {
+        choices: string; 
+      };
+
+      const answers = await Enquirer.prompt<Answers>({
+        type: 'select',
+        name: 'choices',
+        message: question,
+        choices: myChoices,
+      });
+
+      return answers.choices;
+    } catch (error) {
+      console.error('Error:', error);
+      return [];
+    }
+  }  
 
 /*
   This function validate the template name and checks the suffix.
@@ -140,8 +187,8 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       required: false,
     }),
   };
-
-  public async run(): Promise<SetupInitResult> {
+  
+public async run(): Promise<SetupInitResult> {
     const { flags } = await this.parse(SetupInit);
     const { start, stop } = loading('Establishing Connection with Org', {
       clearOnEnd: true,
@@ -250,31 +297,20 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
     const validFormats = new Set(['csv', 'json', 'di']);
     let outputFormat: string[] = [];
     while (true) {
-      const outputFormatValue = await askQuestion(
-        'Provide output format for generated records ' + chalk.dim('[CSV, JSON, and DI-Direct Insertion Supported]'),
-        ''
-      );
-      outputFormat = outputFormatValue ? outputFormatValue.toLowerCase().split(/[\s,]+/) : [];
+      const outputFormatValue = await runMultiSelectPrompt();
+      outputFormat = outputFormatValue.map((format) => format.toLowerCase());
       if (outputFormat.length > 0 && outputFormat.every((format) => validFormats.has(format))) {
         break;
       }
       console.log(chalk.yellow('Invalid input. Please enter only CSV, JSON, or DI.'));
     }
 
-    /* generate data in language */
-    console.log(`In which language would you like to generate test data?`);
-    const selectedLangVal = await cliSelect({
-      values: ['en', 'jp'],
-      valueRenderer: (value, selected) => {
-        if (selected) {
-          return chalk.inverse(value);
-        }
-        return value;
-      },
-      cleanup: false,
-    });
-    const language = selectedLangVal.value;
-    console.log(chalk.dim(`Selected:${language}`));
+    /* generate data in language */   
+    const languageChoices = [
+        { name: 'en', message: 'en', value: 'en', hint: 'English (US)'}, 
+        { name: 'jp', message: 'jp', value: 'jp', hint: 'Japanese'}, 
+      ]; 
+    const language = await runSelectPrompt('In which language would you like to generate test data?', languageChoices) as string;
 
     /* record count */
     let count = 0;
@@ -318,19 +354,13 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
     const sObjectSettingsMap: { [key: string]: typeSObjectSettingsMap } = {};
 
     while (overwriteGlobalSettings.toLowerCase() === 'yes' || overwriteGlobalSettings.toLowerCase() === 'y') {
-      console.log('\nWhich Object(API name) would you like to override the global settings for?');
-      const proRet = cliSelect({
-        values: objectsToConfigure,
-        valueRenderer: (value, selected) => {
-          if (selected) {
-            return chalk.inverse(value);
-          }
-          return value;
-        },
-        cleanup: false,
-      });
-
-      const sObjectName = (await proRet).value;
+      const objInTemplateChoices = objectsToConfigure.map(obj => ({
+        name: obj,
+        message: obj,
+        value: obj
+      }));
+      
+      const sObjectName = await runSelectPrompt('Which Object(API name) would you like to override the global settings for?', objInTemplateChoices) as string;
       if (!sObjectName) {
         overwriteGlobalSettings = await askQuestion(
           'Would you like to customize settings for individual SObjects? (Y/n)',
@@ -390,20 +420,10 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         sObjectSettingsMap[sObjectName].count = overrideCount;
       }
 
-      console.log(`[${sObjectName}] Language in which test data should be generated`);
-      const ovrrideSelectedLangVal = cliSelect({
-        values: ['en', 'jp'],
-        valueRenderer: (value, selected) => {
-          if (selected) {
-            return chalk.inverse(value);
-          }
-          return value;
-        },
-        cleanup: false,
-      });
+      // Note:languageChoices is defined above already
+      const ovrrideSelectedLangVal = await runSelectPrompt(`[${sObjectName}] Language in which test data should be generated`, languageChoices) as string;
       if (ovrrideSelectedLangVal) {
-        sObjectSettingsMap[sObjectName].language = (await ovrrideSelectedLangVal).value;
-        console.log(chalk.dim(`Selected: ${sObjectSettingsMap[sObjectName].language}`));
+        sObjectSettingsMap[sObjectName].language = ovrrideSelectedLangVal;
       }
       overwriteGlobalSettings = await askQuestion(
         'Do you wish to overwrite global settings for another Object(API name)? (Y/n)',
