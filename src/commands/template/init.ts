@@ -307,6 +307,9 @@ public async run(): Promise<SetupInitResult> {
       } else if (preSanitizedCount > 0 && preSanitizedCount <= 1000 && preSanitizedCount !== undefined && !isNaN(preSanitizedCount) && !outputFormat.includes('di')) {
         count = preSanitizedCount;
         break;
+      } else if(isNaN(preSanitizedCount)){
+        count = 1;
+        break;
       }
 
       if (outputFormat.includes('di')) {
@@ -329,6 +332,10 @@ public async run(): Promise<SetupInitResult> {
     const objectsToConfigure = tempObjectsToConfigure.filter(
       (obj, index) => tempObjectsToConfigure.indexOf(obj) === index
     );
+
+    if (objectsToConfigure.length === 0) {
+      objectsToConfigure.push('lead');
+    }
 
     let overwriteGlobalSettings = await askQuestion(
       'Would you like to customize settings for individual SObjects? (Y/n)',
@@ -353,10 +360,6 @@ public async run(): Promise<SetupInitResult> {
           break;
         }
         continue;
-      }
-
-      if (objectsToConfigure.length === 0) {
-        objectsToConfigure.push('lead');
       }
 
       if (!objectsToConfigure.includes(sObjectName)) {
