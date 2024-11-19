@@ -1,40 +1,55 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable prefer-const */
-/* eslint-disable no-underscore-dangle */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable sf-plugin/dash-o */
 /* eslint-disable sf-plugin/flag-case */
-/* eslint-disable sf-plugin/no-missing-messages */
-/* eslint-disable sf-plugin/command-example */
-/* eslint-disable sf-plugin/command-summary */
-/* eslint-disable no-lonely-if */
 /* eslint-disable no-param-reassign */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/quotes */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/explicit-function-return-type */
-/* eslint-disable sf-plugin/esm-message-import */
-/* eslint-disable unicorn/prefer-node-protocol */
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import chalk from 'chalk';
 
-Messages.importMessagesDirectory(path.dirname(fileURLToPath(import.meta.url)));
+Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.remove');
+
+type typeSObjectSettingsMap = {
+  fieldsToExclude?: string[];
+  count?: number;
+  language?: string;
+};
+
+type SObjectItem = { [key: string]: typeSObjectSettingsMap };
+
+type templateSchema = {
+  templateFileName: string;
+  namespaceToExclude: string[];
+  outputFormat: string[];
+  language: string;
+  count: number;
+  sObjects: SObjectItem[];
+};
+
+type FlagsType = {
+  sObject?: string;
+  templateName: string;
+  language?: boolean;
+  count?: boolean;
+  namespaceToExclude?: string;
+  outputFormat?: string;
+  fieldsToExclude?: string;
+};
 
 /* 
 Removing specified configuration options from the given configObject based on provided flags.
 */
 export function removeOrDeleteConfig(
   configMap: any,
-  flags: any,
+  flags: FlagsType,
   allowedFlags: string[],
   log: (message: string) => void
-) {
+): void {
   const arrayFlags = ['namespaceToExclude', 'outputFormat', 'fieldsToExclude'];
 
   for (const [key, value] of Object.entries(flags)) {
@@ -70,7 +85,7 @@ export function removeOrDeleteConfig(
           if (key === 'outputFormat') {
             if (configMap[key].length === 0) {
               throw new Error(
-                `Error: All the values from 'outputFormat' cannot be deleted! You must leave at least one value.`
+                "Error: All the values from 'outputFormat' cannot be deleted! You must leave at least one value."
               );
             }
 
@@ -91,15 +106,17 @@ export function removeOrDeleteConfig(
         delete configMap[key];
         log(`Removing: ${key} from the "${flags.sObject}" settings`);
       }
-    } else {
-      if (key !== 'templateName' && key !== 'sObject') {
-        throw new Error(`Error: Default ${key} can not be deleted! You can update instead.`);
-      }
+    } else if (key !== 'templateName' && key !== 'sObject') {
+      throw new Error(`Error: Default ${key} can not be deleted! You can update instead.`);
     }
   }
 }
 
 export default class TemplateRemove extends SfCommand<void> {
+  public static readonly summary: string = messages.getMessage('summary');
+
+  public static readonly examples: string[] = [messages.getMessage('Examples')];
+
   public static readonly templateAddFlags = {
     sObject: Flags.string({
       char: 'o',
@@ -147,8 +164,8 @@ export default class TemplateRemove extends SfCommand<void> {
 
     const filename = flags.templateName.includes('.json') ? flags.templateName : flags.templateName + '.json';
 
-    const __cwd = process.cwd();
-    const dataGenDirPath = path.join(__cwd, 'data_gen');
+    const currWorkingDir = process.cwd();
+    const dataGenDirPath = path.join(currWorkingDir, 'data_gen');
     const templateDirPath = path.join(dataGenDirPath, 'templates');
 
     if (!fs.existsSync(templateDirPath)) {
@@ -165,7 +182,7 @@ export default class TemplateRemove extends SfCommand<void> {
       this.error(`Data Template file not found at ${configFilePath}`);
     }
 
-    let config = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
+    const config: templateSchema = JSON.parse(fs.readFileSync(configFilePath, 'utf8')) as templateSchema;
 
     if (flagKeys.length === 1 && flagKeys.includes('templateName')) {
       this.error('Error: Data Template File can not be deleted! You must specify at least one setting flag to remove');
@@ -181,11 +198,11 @@ export default class TemplateRemove extends SfCommand<void> {
     */
     if (objectNames) {
       if (flags.namespaceToExclude) {
-        throw new Error(`You cannot use global flag "namespaceToExclude" with an SObject flag.`);
+        throw new Error('You cannot use global flag "namespaceToExclude" with an SObject flag.');
       }
 
       if (flags.outputFormat) {
-        throw new Error(`You cannot use global flag "outputFormat" with an SObject flag.`);
+        throw new Error('You cannot use global flag "outputFormat" with an SObject flag.');
       }
 
       if (!Array.isArray(config.sObjects)) {
@@ -195,9 +212,10 @@ export default class TemplateRemove extends SfCommand<void> {
       objectNames.forEach((objectName) => {
         const lowerCaseObjectName = objectName.toLowerCase();
 
-        const objectIndex = config.sObjects.findIndex(
-          (obj: string) => Object.keys(obj)[0].toLowerCase() === lowerCaseObjectName
-        );
+        const objectIndex = config.sObjects.findIndex((obj: SObjectItem): boolean => {
+          const keys = Object.keys(obj);
+          return keys.length > 0 && keys[0].toLowerCase() === lowerCaseObjectName;
+        });
 
         if (objectIndex === -1) {
           this.error(chalk.yellow(`Object '${objectName}' does not exist in data template file.`));
@@ -278,6 +296,6 @@ export default class TemplateRemove extends SfCommand<void> {
 
     fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8');
 
-    this.log(chalk.green(`Success: Configuration updated in data template file`));
+    this.log(chalk.green('Success: Configuration updated in data template file'));
   }
 }
