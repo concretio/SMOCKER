@@ -60,4 +60,5 @@ Use --fieldsToExclude or -e to remove the exclusion of specific fields for a giv
 
 # Examples
 
-- `sf template remove --templateName MyTemplate --fieldsToExclude Field1,Field2`
+- `sf template remove -t <template-name> <global flags -f[values],-x[values]>`
+- `sf template remove -t <template-name> -o <object-name> <-e[values],-c,-l>`
