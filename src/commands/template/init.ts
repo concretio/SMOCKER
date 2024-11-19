@@ -199,17 +199,17 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         {
           "_comment_importantNote": "We highly recommend removing all the comments for a cleaner exeperience once you are comfortable with this json format",
 
-          "_comment_templateFileName": "The filename of the data template.",
+          "_comment_template-file-name": "The filename of the data template.",
 
-          "templateFileName": "${path.basename(defaultTemplatePath)}",
+          "template-file-name": "${path.basename(defaultTemplatePath)}",
           
-          "_comment_namespaceToExclude": "Fields from these namespace(s) will be excluded while generating test data",
-          "_example_namespaceToExclude": "namespaceToExclude:['namespace1','namespace2']",
-          "namespaceToExclude": [],
+          "_comment_namespace-to-exclude": "Fields from these namespace(s) will be excluded while generating test data",
+          "_example_namespace-to-exclude": "namespace-to-exclude:['namespace1','namespace2']",
+          "namespace-to-exclude": [],
           
-          "_comment_outputFormat": "Desired output format(s) for the storing the generated test data; Only 3 values are valid- csv,json and di(i.e. for direct insertion of upto 200 records into the connected org)",
-          "_example_outputFormat": "outputFormat:['csv','json','di']",
-          "outputFormat": ["csv"],
+          "_comment_output-format": "Desired output format(s) for the storing the generated test data; Only 3 values are valid- csv,json and di(i.e. for direct insertion of upto 200 records into the connected org)",
+          "_example_output-format": "output-format:['csv','json','di']",
+          "output-format": ["csv"],
           
           "_comment_language": "Specifies the default language for data generation; applies to all sObjects unless overridden (e.g., 'en' for English).",
           "language": "en",
@@ -217,15 +217,15 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
           "_comment_count": "Specifies the default count for data generation; applies to all sObjects unless overridden",
           "count": 1,
           
-          "_comment_sObjects": "Lists Salesforce objects (API names) to generate test data for.",
-          "sObjects": [
+          "_comment_sobjects": "Lists Salesforce objects (API names) to generate test data for.",
+          "sobjects": [
             {"account": {}},
             {"contact": {}},
             {
               "lead": {
                 "_comment_sobjectLevel": "These settings are object specific, so here these are set for lead object only",
-                "_comment_fieldsToExclude": "Lists fields to exclude from generating test data for the Lead object.",
-                "fieldsToExclude": ["fax", "website"],
+                "_comment_fields-to-exclude": "Lists fields to exclude from generating test data for the Lead object.",
+                "fields-to-exclude": ["fax", "website"],
 
                 "_comment_language": "Specifies language for generating test data for the Lead object.",
                 "language": "en",
