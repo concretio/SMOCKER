@@ -302,9 +302,8 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
     }
   }
   /**
-   * Inserts records into a specified Salesforce object using the provided connection and JSON data.
-   * The method uses the Salesforce API to create records and returns the results of the insertion.
-   *
+   * The Bulk API processes records in batches (up to 10,000 per batch). 
+   * Each batch counts as a single API call, making it efficient for handling large datasets.
    * @param {Connection} conn - The Salesforce connection instance used to perform the insert operation.
    * @param {string} object - The API name of the Salesforce object where the records will be inserted.
    * @param {GenericRecord[]} jsonData - An array of records to be inserted, formatted as `GenericRecord` objects.
@@ -313,16 +312,29 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
    * @author Kunal Vishnani
    */
   private async insertRecords(conn: Connection, object: string, jsonData: GenericRecord[]): Promise<CreateResult[]> {
-    const insertResults = await conn.sobject(object).create(jsonData, { allowRecursive: true });
-    const insertResult: CreateResult[] = (Array.isArray(insertResults) ? insertResults : [insertResults]).map(
-      (result) => ({
-        id: result.id ?? '',
-        success: result.success,
-        errors: result.errors,
-      })
-    );
+    // Create job and batch
+    const job = conn.bulk.createJob(object, 'insert');
+    const batch = job.createBatch();
+    // start job
+    batch.execute(jsonData);
+    await new Promise<void>((resolve, reject) => {
 
-    return insertResult;
+      batch.on('error', () => {
+        reject(new Error('Batch operation failed.'));
+      });
+
+      batch.on('response', () => {
+        resolve();
+      });
+    });
+
+    // Fetch results
+    const results: any[] = await batch.retrieve();
+    return results.map((result) => ({
+      id: result.id ?? '',
+      success: result.success,
+      errors: result.errors || [],
+    }));
   }
 
   /**
