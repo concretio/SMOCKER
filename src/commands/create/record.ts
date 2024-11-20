@@ -39,6 +39,14 @@ const messages = Messages.loadMessages('smocker-concretio', 'create.record');
 let depthForRecord = 0;
 // let orgConnection: any;
 export type CreateRecordResult = { path: string };
+type BulkQueryBatchResult = {
+  batchId?: string;
+  id?: string | null;
+  jobId?: string;
+  errors?: string[];
+  success?: boolean;
+};
+
 type TargetData = {
   name: string;
   type: string;
@@ -302,39 +310,42 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
     }
   }
   /**
-   * The Bulk API processes records in batches (up to 10,000 per batch). 
+   * Inserts records into a specified Salesforce object using the provided connection and JSON data in case of less than 200 records.
+   * For more than 200 recor creation, use The Bulk API to processes records in batches (up to 10,000 per batch). 
    * Each batch counts as a single API call, making it efficient for handling large datasets.
+   * 
    * @param {Connection} conn - The Salesforce connection instance used to perform the insert operation.
    * @param {string} object - The API name of the Salesforce object where the records will be inserted.
    * @param {GenericRecord[]} jsonData - An array of records to be inserted, formatted as `GenericRecord` objects.
    * @returns {Promise<CreateResult[]>} - A promise that resolves to an array of `CreateResult` objects, each representing the result of an insert operation.
    * @throws {Error} - Throws an error if the insert operation fails or if the response is not as expected.
-   * @author Kunal Vishnani
+   * @author Khushboo Sharma
    */
   private async insertRecords(conn: Connection, object: string, jsonData: GenericRecord[]): Promise<CreateResult[]> {
-    // Create job and batch
-    const job = conn.bulk.createJob(object, 'insert');
-    const batch = job.createBatch();
-    // start job
-    batch.execute(jsonData);
-    await new Promise<void>((resolve, reject) => {
-
-      batch.on('error', () => {
-        reject(new Error('Batch operation failed.'));
-      });
-
-      batch.on('response', () => {
-        resolve();
-      });
-    });
-
-    // Fetch results
-    const results: any[] = await batch.retrieve();
-    return results.map((result) => ({
-      id: result.id ?? '',
-      success: result.success,
-      errors: result.errors || [],
-    }));
+    if (jsonData.length > 200) {
+      // Use Bulk API for large datasets
+      const job = conn.bulk.createJob(object, 'insert');
+      const batch = job.createBatch();
+      await batch.execute(jsonData);
+      const results: BulkQueryBatchResult[] = await batch.retrieve();
+      const insertResult: CreateResult[] = results.map((result) => ({
+        id: result.id ?? '',
+        success: result.success ?? false,
+        errors: result.errors ?? [],
+      }));
+      return insertResult;
+    } else {
+      // Use standard for less than 200 records datasets.
+      const insertResults = await conn.sobject(object).create(jsonData, { allowRecursive: true });
+      const insertResult: CreateResult[] = (Array.isArray(insertResults) ? insertResults : [insertResults]).map(
+        (result) => ({
+          id: result.id ?? '',
+          success: result.success,
+          errors: result.errors,
+        })
+      );
+      return insertResult;
+    }
   }
 
   /**
