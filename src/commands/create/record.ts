@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /* eslint-disable sf-plugin/command-summary */
 /* eslint-disable sf-plugin/command-example */
 /* eslint-disable sf-plugin/no-hardcoded-messages-flags */
@@ -203,9 +204,9 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
       this.saveMapToJsonFile(
         'data_gen',
         flags.templateName?.replace('.json', '') +
-          'createdRecords_' +
-          new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').split('.')[0] +
-          '.json'
+        'createdRecords_' +
+        new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').split('.')[0] +
+        '.json'
       );
     }
 
@@ -310,8 +311,8 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
     }
   }
   /**
-   * Inserts records into a specified Salesforce object using the provided connection and JSON data in case of less than 200 records.
-   * For more than 200 recor creation, use The Bulk API to processes records in batches (up to 10,000 per batch). 
+   * Inserts records into a specified Salesforce object using the provided connection and JSON data for first 200 records.
+   * For more than 200 record creation, use The Bulk API to processes records in batches (up to 10,000 per batch). 
    * Each batch counts as a single API call, making it efficient for handling large datasets.
    * 
    * @param {Connection} conn - The Salesforce connection instance used to perform the insert operation.
@@ -322,30 +323,31 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
    * @author Khushboo Sharma
    */
   private async insertRecords(conn: Connection, object: string, jsonData: GenericRecord[]): Promise<CreateResult[]> {
+    const results: CreateResult[] = [];
+    const initialRecords = jsonData.slice(0, 200);
+    const insertResults = await conn.sobject(object).create(initialRecords);
+    const initialInsertResult: CreateResult[] = (Array.isArray(insertResults) ? insertResults : [insertResults]).map(
+      (result) => ({
+        id: result.id ?? '',
+        success: result.success,
+        errors: result.errors,
+      })
+    );
+    results.push(...initialInsertResult);
     if (jsonData.length > 200) {
-      // Use Bulk API for large datasets
+      const remainingRecords = jsonData.slice(200);
       const job = conn.bulk.createJob(object, 'insert');
       const batch = job.createBatch();
-      await batch.execute(jsonData);
-      const results: BulkQueryBatchResult[] = await batch.retrieve();
-      const insertResult: CreateResult[] = results.map((result) => ({
+      await batch.execute(remainingRecords);
+      const bulkResults: BulkQueryBatchResult[] = await batch.retrieve();
+      const bulkInsertResult: CreateResult[] = bulkResults.map((result) => ({
         id: result.id ?? '',
         success: result.success ?? false,
         errors: result.errors ?? [],
       }));
-      return insertResult;
-    } else {
-      // Use standard for less than 200 records datasets.
-      const insertResults = await conn.sobject(object).create(jsonData, { allowRecursive: true });
-      const insertResult: CreateResult[] = (Array.isArray(insertResults) ? insertResults : [insertResults]).map(
-        (result) => ({
-          id: result.id ?? '',
-          success: result.success,
-          errors: result.errors,
-        })
-      );
-      return insertResult;
+      results.push(...bulkInsertResult);
     }
+    return results;
   }
 
   /**
