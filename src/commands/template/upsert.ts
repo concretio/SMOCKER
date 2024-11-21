@@ -52,10 +52,8 @@ export function updateOrInitializeConfig(
           if (!valuesArray.every((format) => ['csv', 'json', 'di'].includes(format))) {
             throw new Error(chalk.red('Invalid output format passed. supports `csv`, `json` and `di` only'));
           } else if (
-            valuesArray.includes('di') &&
-            (configObject['count'] > 200 ||
-              configObject['sObjects'].some(
-                (obj: { [x: string]: { count: number } }) => obj[Object.keys(obj)[0]]?.count > 200
+            valuesArray.includes('di') && (configObject['count'] > 200 || configObject['sObjects'].some(
+              (obj: { [x: string]: { count: number } }) => obj[Object.keys(obj)[0]]?.count > 200
               ))
           ) {
             throw new Error(
@@ -80,12 +78,8 @@ export function updateOrInitializeConfig(
           throw new Error('Invalid language input. supports `en` or `jp` only');
         }
 
-        if (
-          key == 'count' &&
-          ((value as number) < 1 || (value as number) > 200) &&
-          config.outputFormat.includes('di')
-        ) {
-          throw new Error('Invalid input. Please enter between 1-200');
+        if ( key =='count' && (value as number) < 1 || ((value as number) > 200) && config.outputFormat.includes('di')) {  
+              throw new Error('Invalid input. Please enter a Value between 1-200 for DI and for CSV and JSON value greater than 0');
         }
 
         configObject[key] = value;
