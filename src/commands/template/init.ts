@@ -68,6 +68,11 @@ function handleDirStruct(): string {
         { name: 'JSON', message: 'JSON', value: 'json' }, 
         { name: 'CSV',  message: 'CSV',  value: 'csv' } 
       ];
+    // Listen for Ctrl+C and terminate the CLI
+    process.on('SIGINT', () => {
+      console.log('\nCLI terminated by the user.');
+      process.exit(0);
+    });
 
       const answers = await Enquirer.prompt<Answers>({
         type: 'multiselect',
@@ -78,6 +83,11 @@ function handleDirStruct(): string {
 
       return answers.choices;
     } catch (error) {
+      if (error === '') {
+        // Handle Ctrl+C gracefully
+        console.log('\nCLI terminated by the user.');
+        process.exit(0);
+      }
       console.error('Error:', error);
       return [];
     }
@@ -88,7 +98,11 @@ function handleDirStruct(): string {
       type Answers = {
         choices: string; 
       };
-
+          // Listen for Ctrl+C and terminate the CLI
+    process.on('SIGINT', () => {
+      console.log('\nCLI terminated by the user.');
+      process.exit(0);
+    });
       const answers = await Enquirer.prompt<Answers>({
         type: 'select',
         name: 'choices',
@@ -98,6 +112,11 @@ function handleDirStruct(): string {
 
       return answers.choices;
     } catch (error) {
+      if (error === '') {
+        // Handle Ctrl+C gracefully
+        console.log('\nCLI terminated by the user.');
+        process.exit(0);
+      }
       console.error('Error:', error);
       return '';
     }
