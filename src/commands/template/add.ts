@@ -1,10 +1,9 @@
-/* eslint-disable no-param-reassign */
-/* eslint-disable sf-plugin/dash-o */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -39,12 +38,24 @@ type templateSchema = {
   sobjects: SObjectItem[];
 };
 
+type tempAddFlags = {
+  sobject?: string;
+  'template-name': string;
+  language?: string;
+  count?: number;
+  'namespace-to-exclude'?: string;
+  'output-format'?: string;
+  'fields-to-exclude'?: string;
+};
+
 export function updateOrInitializeConfig(
   configObject: any,
-  flags: any,
+  flags: tempAddFlags,
   allowedFlags: string[],
   log: (message: string) => void
 ): void {
+  const updatedConfig = { ...configObject };
+
   const arrayFlags = ['namespace-to-exclude', 'output-format', 'fields-to-exclude'];
 
   for (const [key, value] of Object.entries(flags)) {
@@ -61,8 +72,8 @@ export function updateOrInitializeConfig(
             throw new Error(chalk.red('Invalid output format passed. supports `csv`, `json` and `di` only'));
           } else if (
             valuesArray.includes('di') &&
-            (configObject['count'] > 200 ||
-              configObject['sobjects'].some(
+            (updatedConfig['count'] > 200 ||
+              updatedConfig['sobjects'].some(
                 (obj: { [x: string]: { count: number } }) => obj[Object.keys(obj)[0]]?.count > 200
               ))
           ) {
@@ -75,11 +86,11 @@ export function updateOrInitializeConfig(
         if (Array.isArray(configObject[key])) {
           valuesArray.forEach((item: string) => {
             if (item && !configObject[key].includes(item)) {
-              configObject[key].push(item);
+              updatedConfig[key].push(item);
             }
           });
         } else {
-          configObject[key] = valuesArray;
+          updatedConfig[key] = valuesArray;
         }
 
         log(`Updated '${key}' to: ${configObject[key].join(', ')}`);
@@ -96,7 +107,7 @@ export function updateOrInitializeConfig(
           throw new Error('Invalid input. Please enter between 1-200');
         }
 
-        configObject[key] = value;
+        updatedConfig[key] = value;
         log(`Setting '${key}' to: ${configObject[key]}`);
       }
     } else if (!['sobject', 'template-name'].includes(key)) {
@@ -106,7 +117,7 @@ export function updateOrInitializeConfig(
 }
 export const templateAddFlags = {
   sobject: Flags.string({
-    char: 'o',
+    char: 's',
     summary: messages.getMessage('flags.sobject.summary'),
     description: messages.getMessage('flags.sobject.description'),
     required: false,
@@ -156,7 +167,7 @@ export default class TemplateAdd extends SfCommand<void> {
   public static readonly examples: string[] = [messages.getMessage('Examples')];
 
   public static readonly flags = templateAddFlags;
-  
+
   public async run(): Promise<void> {
     const { flags } = await this.parse(TemplateAdd);
 
@@ -186,7 +197,6 @@ export default class TemplateAdd extends SfCommand<void> {
 
       config = JSON.parse(fs.readFileSync(configFilePath, 'utf8')) as templateSchema;
       let allowedFlags = [];
-      
 
       // Checking if Object Flag is passed or not
 
@@ -195,7 +205,9 @@ export default class TemplateAdd extends SfCommand<void> {
         if (!Array.isArray(config.sobjects)) {
           config.sobjects = [];
         }
-        let objectConfig = config.sobjects.find((obj: SObjectItem): boolean => Object.keys(obj)[0] === objectName) as SObjectItem;
+        let objectConfig = config.sobjects.find(
+          (obj: SObjectItem): boolean => Object.keys(obj)[0] === objectName
+        ) as SObjectItem;
         if (!objectConfig) {
           const addToTemplate = await askQuestion(
             chalk.yellow(`'${objectName}' does not exists in data template! Do you want to add?`) + chalk.dim('(Y/n)')

@@ -1,13 +1,10 @@
-/* eslint-disable no-console */
-/* eslint-disable sf-plugin/flag-case */
-/* eslint-disable @typescript-eslint/unbound-method */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as dotenv from 'dotenv';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages, Connection, Org } from '@salesforce/core';
 import chalk from 'chalk';
-import { loading } from 'cli-loading-animation';
+import { loading, LoaderActions } from 'cli-loading-animation';
 import Spinner from 'cli-spinners';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
@@ -74,10 +71,14 @@ export async function getConnectionWithSalesforce(): Promise<Connection> {
 
 export async function validateConfigJson(connection: Connection, configPath: string): Promise<void> {
   try {
-    const { start, stop } = loading('\nPlease wait!! while we validate Objects and Fields from connected org.', {
+    const actions: LoaderActions = loading('\nPlease wait!! while we validate Objects and Fields from connected org.', {
       clearOnEnd: true,
       spinner: Spinner.bouncingBar,
     });
+
+    const start: () => void = () => actions.start();
+    const stop: () => void = () => actions.stop();
+
     start();
     const config: templateSchema = JSON.parse(fs.readFileSync(configPath, 'utf8')) as templateSchema;
 
@@ -169,7 +170,9 @@ export class TemplateValidate extends SfCommand<TemplateValidateResult> {
   public async run(): Promise<TemplateValidateResult> {
     const { flags } = await this.parse(TemplateValidate);
     const currWorkingDir = process.cwd();
-    const sanitizeFilename = flags['template-name'].endsWith('.json') ? flags['template-name'] : flags['template-name'] + '.json';
+    const sanitizeFilename = flags['template-name'].endsWith('.json')
+      ? flags['template-name']
+      : flags['template-name'] + '.json';
     const templateDirPath = path.join(currWorkingDir, `data_gen/templates/${sanitizeFilename}`);
 
     if (fs.existsSync(templateDirPath)) {

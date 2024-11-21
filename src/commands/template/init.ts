@@ -1,13 +1,8 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-/* eslint-disable complexity */
-/* eslint-disable no-console */
-/* eslint-disable no-await-in-loop */
-
 import * as readline from 'node:readline';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import chalk from 'chalk';
-import { loading } from 'cli-loading-animation';
+import { loading, LoaderActions } from 'cli-loading-animation';
 import Spinner from 'cli-spinners';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
@@ -170,10 +165,14 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
 
   public async run(): Promise<SetupInitResult> {
     const { flags } = await this.parse(SetupInit);
-    const { start, stop } = loading('Establishing Connection with Org', {
+
+    const actions: LoaderActions = loading('Establishing Connection with Org', {
       clearOnEnd: true,
       spinner: Spinner.line2,
     });
+
+    const start: () => void = () => actions.start();
+    const stop: () => void = () => actions.stop();
 
     start();
     const dirname = handleDirStruct();
