@@ -15,9 +15,9 @@ import chalk from 'chalk';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.print');
 
-export type TemplatePrintResult = {
-  path: string;
-};
+// export type TemplatePrintResult = {
+//   path: string;
+// };
 
 export default class TemplatePrint extends SfCommand<void> {
   public static readonly flags = {

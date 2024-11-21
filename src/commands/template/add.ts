@@ -1,3 +1,4 @@
+/* eslint-disable import/order */
 /* eslint-disable no-param-reassign */
 /* eslint-disable sf-plugin/dash-o */
 
@@ -14,30 +15,31 @@ import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import chalk from 'chalk';
 import { askQuestion } from './init.js';
 // import { validateConfigJson, getConnectionWithSalesforce } from '../template/validate.js';
-
+import { typeSObjectSettingsMap, SObjectItem, templateSchema } from '../../utils/types.js';
+import { arrayFlags } from '../../utils/constants.js';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.add');
 
-export type TemplateAddResult = {
-  path: string;
-};
+// export type TemplateAddResult = {
+//   path: string;
+// };
 
-type typeSObjectSettingsMap = {
-  'fields-to-exclude'?: string[];
-  count?: number;
-  language?: string;
-};
+// type typeSObjectSettingsMap = {
+//   'fields-to-exclude'?: string[];
+//   count?: number;
+//   language?: string;
+// };
 
-type SObjectItem = { [key: string]: typeSObjectSettingsMap };
+// type SObjectItem = { [key: string]: typeSObjectSettingsMap };
 
-type templateSchema = {
-  'template-file-name': string;
-  'namespace-to-exclude': string[];
-  'output-format': string[];
-  language: string;
-  count: number;
-  sobjects: SObjectItem[];
-};
+// type templateSchema = {
+//   'template-file-name': string;
+//   'namespace-to-exclude': string[];
+//   'output-format': string[];
+//   language: string;
+//   count: number;
+//   sobjects: SObjectItem[];
+// };
 
 export function updateOrInitializeConfig(
   configObject: any,
@@ -45,7 +47,7 @@ export function updateOrInitializeConfig(
   allowedFlags: string[],
   log: (message: string) => void
 ): void {
-  const arrayFlags = ['namespace-to-exclude', 'output-format', 'fields-to-exclude'];
+  // const arrayFlags = ['namespace-to-exclude', 'output-format', 'fields-to-exclude'];
 
   for (const [key, value] of Object.entries(flags)) {
     if (allowedFlags.includes(key) && value !== undefined) {

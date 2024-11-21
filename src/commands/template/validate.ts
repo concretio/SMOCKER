@@ -9,39 +9,39 @@ import { Messages, Connection, Org } from '@salesforce/core';
 import chalk from 'chalk';
 import { loading } from 'cli-loading-animation';
 import Spinner from 'cli-spinners';
-
+import { TemplateValidateResult, sObjectSchemaType  , templateSchema, Types, sObjectMetaType} from '../../utils/types.js';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.validate');
 
-type TemplateValidateResult = {
-  path: string;
-};
+// type TemplateValidateResult = {
+//   path: string;
+// };
 
-type sObjectSchemaType = {
-  'fields-to-exclude'?: string[];
-  count?: number;
-  language?: string;
-};
+// type sObjectSchemaType = {
+//   'fields-to-exclude'?: string[];
+//   count?: number;
+//   language?: string;
+// };
 
-type SObjectItem = { [key: string]: sObjectSchemaType };
+// type SObjectItem = { [key: string]: sObjectSchemaType };
 
-type templateSchema = {
-  'template-file-name': string;
-  'namespace-to-exclude': string[];
-  'output-format': string[];
-  language: string;
-  count: number;
-  sobjects: SObjectItem[];
-};
+// type templateSchema = {
+//   'template-file-name': string;
+//   'namespace-to-exclude': string[];
+//   'output-format': string[];
+//   language: string;
+//   count: number;
+//   sobjects: SObjectItem[];
+// };
 
-type Field = {
-  fullName: string | null | undefined;
-};
+// type Field = {
+//   fullName: string | null | undefined;
+// };
 
-type sObjectMetaType = {
-  nameField?: { label: string; type: string };
-  fields?: Field[];
-};
+// type sObjectMetaType = {
+//   nameField?: { label: string; type: string };
+//   fields?: Field[];
+// };
 
 dotenv.config();
 export async function getConnectionWithSalesforce(): Promise<Connection> {
@@ -102,8 +102,8 @@ export async function validateConfigJson(connection: Connection, configPath: str
 
       const getAllFields: string[] = sObjectMeta.fields
         ? sObjectMeta.fields
-            .filter((field: Field) => field.fullName != null)
-            .map((field: Field) => field.fullName!.toLowerCase())
+            .filter((field: Types.Field) => field.fullName != null)
+            .map((field: Types.Field) => field.fullName!.toLowerCase())
         : [];
 
       /*
