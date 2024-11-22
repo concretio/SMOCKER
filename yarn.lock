@@ -3469,15 +3469,15 @@ color-convert@^2.0.1:
   dependencies:
     color-name "~1.1.4"
 
-color-name@^1.0.0, color-name@1.1.3:
-  version "1.1.3"
-  resolved "https://registry.npmjs.org/color-name/-/color-name-1.1.3.tgz"
-  integrity sha512-72fSenhMw2HZMTVHeCA9KCmpEIbzWiQsjN+BHcBbS9vr1mtt+vJjPdksIBNUmKAW8TFUDPJK5SUU3QhE9NEXDw==
-
-color-name@~1.1.4:
+color-name@^1.0.0, color-name@~1.1.4:
   version "1.1.4"
   resolved "https://registry.npmjs.org/color-name/-/color-name-1.1.4.tgz"
   integrity sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==
+
+color-name@1.1.3:
+  version "1.1.3"
+  resolved "https://registry.npmjs.org/color-name/-/color-name-1.1.3.tgz"
+  integrity sha512-72fSenhMw2HZMTVHeCA9KCmpEIbzWiQsjN+BHcBbS9vr1mtt+vJjPdksIBNUmKAW8TFUDPJK5SUU3QhE9NEXDw==
 
 color-string@^1.9.0:
   version "1.9.1"
@@ -9135,17 +9135,7 @@ typedoc@^0.25.12, "typedoc@0.22.x || 0.23.x":
     minimatch "^9.0.3"
     shiki "^0.14.7"
 
-"typescript@^4.6.4 || ^5.2.2":
-  version "5.6.3"
-  resolved "https://registry.npmjs.org/typescript/-/typescript-5.6.3.tgz"
-  integrity sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==
-
-typescript@^5.4.3, "typescript@4.6.x || 4.7.x || 4.8.x || 4.9.x || 5.0.x || 5.1.x || 5.2.x || 5.3.x || 5.4.x":
-  version "5.6.3"
-  resolved "https://registry.npmjs.org/typescript/-/typescript-5.6.3.tgz"
-  integrity sha512-hjcS1mhfuyi4WW8IWtjP7brDrG2cuDZukyrYrSauoXGNgx0S7zceP07adYkJycEr56BOUTNPzbInooiN3fn1qw==
-
-typescript@^5.4.5, typescript@>=2.7, typescript@>=4, typescript@>=4.2.0, typescript@>=4.9.5, typescript@~5.4.2:
+"typescript@^4.6.4 || ^5.2.2", typescript@^5.4.3, typescript@^5.4.5, typescript@>=2.7, typescript@>=4, typescript@>=4.2.0, typescript@>=4.9.5, typescript@~5.4.2, "typescript@4.6.x || 4.7.x || 4.8.x || 4.9.x || 5.0.x || 5.1.x || 5.2.x || 5.3.x || 5.4.x":
   version "5.4.5"
   resolved "https://registry.npmjs.org/typescript/-/typescript-5.4.5.tgz"
   integrity sha512-vcI4UpRgg81oIRUFwR0WSIHKt11nJ7SAVlYNIu+QpqeyXP+gpQJy/Z4+F0aGxSE4MqwjyXvW/TzgkLAx2AGHwQ==

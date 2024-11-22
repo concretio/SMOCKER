@@ -1,45 +1,46 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable sf-plugin/dash-o */
 /* eslint-disable sf-plugin/flag-case */
 /* eslint-disable no-param-reassign */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import fs from 'node:fs';
 import path from 'node:path';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import chalk from 'chalk';
-
+import { SObjectItem, templateSchema, FlagsType } from '../../utils/types.js';
+import { arrayFlags } from '../../utils/constants.js';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.remove');
 
-type typeSObjectSettingsMap = {
-  'fields-to-exclude'?: string[];
-  count?: number;
-  language?: string;
-};
+// type typeSObjectSettingsMap = {
+//   'fields-to-exclude'?: string[];
+//   count?: number;
+//   language?: string;
+// };
 
-type SObjectItem = { [key: string]: typeSObjectSettingsMap };
+// type SObjectItem = { [key: string]: typeSObjectSettingsMap };
 
-type templateSchema = {
-  'template-file-name': string;
-  'namespace-to-exclude': string[];
-  'output-format': string[];
-  language: string;
-  count: number;
-  sobjects: SObjectItem[];
-};
+// type templateSchema = {
+//   'template-file-name': string;
+//   'namespace-to-exclude': string[];
+//   'output-format': string[];
+//   language: string;
+//   count: number;
+//   sobjects: SObjectItem[];
+// };
 
-type FlagsType = {
-  sobject?: string;
-  'template-name': string;
-  language?: boolean;
-  count?: boolean;
-  'namespace-to-exclude'?: string;
-  'output-format'?: string;
-  'fields-to-exclude'?: string;
-};
+// type FlagsType = {
+//   sobject?: string;
+//   'template-name': string;
+//   language?: boolean;
+//   count?: boolean;
+//   'namespace-to-exclude'?: string;
+//   'output-format'?: string;
+//   'fields-to-exclude'?: string;
+// };
 
 /* 
 Removing specified configuration options from the given configObject based on provided flags.
@@ -50,9 +51,9 @@ export function removeOrDeleteConfig(
   allowedFlags: string[],
   log: (message: string) => void
 ): void {
-  const arrayFlags = ['namespace-to-exclude', 'output-format', 'fields-to-exclude'];
+  // const arrayFlags = ['namespace-to-exclude', 'output-format', 'fields-to-exclude'];
 
-  for (const [key, value] of Object.entries(flags)) {
+  for (const [key , value] of Object.entries(flags)) {
     if (allowedFlags.includes(key) && value !== undefined) {
       if (arrayFlags.includes(key) && typeof value === 'string') {
         const valuesArray = value
