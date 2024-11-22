@@ -83,7 +83,7 @@ export function updateOrInitializeConfig(
           }
         }
 
-        if (Array.isArray(configObject[key])) {
+        if (Array.isArray(updatedConfig[key])) {
           valuesArray.forEach((item: string) => {
             if (item && !configObject[key].includes(item)) {
               updatedConfig[key].push(item);

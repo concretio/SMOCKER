@@ -78,7 +78,6 @@ function DeleteArrayValue(
   if (fieldName === 'namespace-to-exclude' || fieldName === 'output-format') {
     if (Object.prototype.hasOwnProperty.call(jsonData, fieldName)) {
       const myArray: string[] = jsonData[fieldName];
-      console.log(myArray);
 
       const valuesNotInJSON: string[] = fieldValues.filter((item) => !myArray.includes(item));
       if (valuesNotInJSON.length > 0) {
@@ -97,13 +96,13 @@ function DeleteArrayValue(
           );
         }
 
-        console.log(`Removing '${myArray.join(', ')}' from the ${fieldName}.`);
+        console.log(`Removing '${fieldValues.join(', ')}' from the ${fieldName}.`);
       }
     } else {
       throw error(`${fieldName} does not exist in the data template.`);
     }
   }
-  return jsonData;
+  return updatedJsonData;
 }
 
 function DeleteSObjectArrayValue(jsonData: templateSchema, sObjectName: string, fieldValues: string[]): templateSchema {
@@ -128,7 +127,7 @@ function DeleteSObjectArrayValue(jsonData: templateSchema, sObjectName: string, 
       );
       concernedObject[sObjectName]['fields-to-exclude'] = updatedArray;
     } else {
-      throw new Error(`The 'fields-to-exclude' field does not exist for sobject '${sObjectName}' settings.`);
+      throw new Error(`The 'fields-to-exclude' does not exist for sobject '${sObjectName}' settings.`);
     }
   }
   return jsonData;

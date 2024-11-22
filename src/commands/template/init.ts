@@ -2,8 +2,6 @@ import * as readline from 'node:readline';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import chalk from 'chalk';
-import { loading, LoaderActions } from 'cli-loading-animation';
-import Spinner from 'cli-spinners';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import Enquirer from 'enquirer';
@@ -166,20 +164,8 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
   public async run(): Promise<SetupInitResult> {
     const { flags } = await this.parse(SetupInit);
 
-    const actions: LoaderActions = loading('Establishing Connection with Org', {
-      clearOnEnd: true,
-      spinner: Spinner.line2,
-    });
-
-    const start: () => void = () => actions.start();
-    const stop: () => void = () => actions.stop();
-
-    start();
     const dirname = handleDirStruct();
     const templatePath = path.join(dirname, 'templates');
-    // const connection = await getConnectionWithSalesforce();
-    stop();
-    // console.log(chalk.cyan('Success: SF Connection established.'));
 
     console.log(chalk.bold('====================================='));
     console.log(chalk.bold('🚀 Creating Data Template File 🚀'));
