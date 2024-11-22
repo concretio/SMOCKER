@@ -1,24 +1,24 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-
 import fs from 'node:fs';
 import path from 'node:path';
-
-import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
+import { Messages } from '@salesforce/core';
+import { error } from '@oclif/core/errors';
 import chalk from 'chalk';
-import { askQuestion } from './init.js';
-// import { validateConfigJson, getConnectionWithSalesforce } from '../template/validate.js';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
-const messages = Messages.loadMessages('smocker-concretio', 'template.add');
+const messages = Messages.loadMessages('smocker-concretio', 'template.remove');
 
-export type TemplateAddResult = {
+export type TemplateRemoveResult = {
   path: string;
+};
+
+export type templateSchema = {
+  'template-file-name': string;
+  'namespace-to-exclude': string[];
+  'output-format': string[];
+  language: string;
+  count: number;
+  sobjects: Array<{ [key: string]: typeSObjectSettingsMap }>;
 };
 
 type typeSObjectSettingsMap = {
@@ -27,214 +27,228 @@ type typeSObjectSettingsMap = {
   language?: string;
 };
 
-type SObjectItem = { [key: string]: typeSObjectSettingsMap };
+function deleteSObjectField(jsonData: templateSchema, sObjectName: string, fieldName: string): templateSchema {
+  const sObject = jsonData.sobjects.find((obj) => Object.prototype.hasOwnProperty.call(obj, sObjectName)) as {
+    [key: string]: typeSObjectSettingsMap;
+  };
 
-type templateSchema = {
-  'template-file-name': string;
-  'namespace-to-exclude': string[];
-  'output-format': string[];
-  language: string;
-  count: number;
-  sobjects: SObjectItem[];
-};
+  if (sObject?.[sObjectName]) {
+    if (Object.prototype.hasOwnProperty.call(sObject[sObjectName], fieldName)) {
+      console.log(`Removing ${fieldName} from the ${sObjectName} settings.`);
+      delete sObject[sObjectName][fieldName as keyof typeSObjectSettingsMap];
+    } else {
+      throw new Error(`The specified flag '${fieldName}' does not exist in the '${sObjectName}' sObject.`);
+    }
+  } else {
+    throw error(`'The '${sObjectName}' does not exist in the sobjects settings.`);
+  }
+  return jsonData;
+}
 
-type tempAddFlags = {
-  sobject?: string;
-  'template-name': string;
-  language?: string;
-  count?: number;
-  'namespace-to-exclude'?: string;
-  'output-format'?: string;
-  'fields-to-exclude'?: string;
-};
+function DeletesObject(jsonData: templateSchema, sObjectNames: string[]): templateSchema {
+  sObjectNames.forEach((sObjectName) => {
+    const sObjectIndex = jsonData.sobjects.findIndex((obj) => Object.prototype.hasOwnProperty.call(obj, sObjectName));
 
-export function updateOrInitializeConfig(
-  configObject: any,
-  flags: tempAddFlags,
-  allowedFlags: string[],
-  log: (message: string) => void
-): void {
-  const updatedConfig = { ...configObject };
+    if (sObjectIndex === -1) {
+      throw new Error(`The specified sObject '${sObjectName}' does not exist in the JSON file.`);
+    }
 
-  const arrayFlags = ['namespace-to-exclude', 'output-format', 'fields-to-exclude'];
+    jsonData.sobjects.splice(sObjectIndex, 1);
+  });
 
-  for (const [key, value] of Object.entries(flags)) {
-    if (allowedFlags.includes(key) && value !== undefined) {
-      // Checking if values need to be converted to an string[]
-      if (arrayFlags.includes(key) && typeof value === 'string') {
-        const valuesArray = value
-          .toLowerCase()
-          .split(/[\s,]+/)
-          .filter(Boolean);
-        // Push to array if it exists else assign to new
-        if (key === 'output-format') {
-          if (!valuesArray.every((format) => ['csv', 'json', 'di'].includes(format))) {
-            throw new Error(chalk.red('Invalid output format passed. supports `csv`, `json` and `di` only'));
-          } else if (
-            valuesArray.includes('di') &&
-            (updatedConfig['count'] > 200 ||
-              updatedConfig['sobjects'].some(
-                (obj: { [x: string]: { count: number } }) => obj[Object.keys(obj)[0]]?.count > 200
-              ))
-          ) {
-            throw new Error(
-              chalk.red('All count values should be within 1-200 to add DI-Direct Insertion in template')
-            );
-          }
-        }
+  console.log(chalk.green(`Object '${sObjectNames.join(', ')}' has been removed from the data template file.`));
 
-        if (Array.isArray(configObject[key])) {
-          valuesArray.forEach((item: string) => {
-            if (item && !configObject[key].includes(item)) {
-              updatedConfig[key].push(item);
-            }
-          });
-        } else {
-          updatedConfig[key] = valuesArray;
-        }
+  return jsonData;
+}
 
-        log(`Updated '${key}' to: ${configObject[key].join(', ')}`);
-      } else {
-        if (key === 'language' && value !== 'en' && value !== 'jp') {
-          throw new Error('Invalid language input. supports `en` or `jp` only');
-        }
+function parseInput(input: string[]): string[] {
+  return input
+    .join('')
+    .split(/[\s,]+/)
+    .filter((item) => item.length > 0);
+}
 
-        if (
-          key === 'count' &&
-          ((value as number) < 1 || (value as number) > 200) &&
-          config['output-format'].includes('di')
-        ) {
-          throw new Error('Invalid input. Please enter between 1-200');
-        }
+function DeleteArrayValue(
+  jsonData: templateSchema,
+  fieldName: keyof templateSchema,
+  fieldValues: string[]
+): templateSchema {
+  const updatedJsonData = { ...jsonData };
 
-        updatedConfig[key] = value;
-        log(`Setting '${key}' to: ${configObject[key]}`);
+  if (fieldName === 'namespace-to-exclude' || fieldName === 'output-format') {
+    if (Object.prototype.hasOwnProperty.call(jsonData, fieldName)) {
+      const myArray: string[] = jsonData[fieldName];
+      console.log(myArray);
+
+      const valuesNotInJSON: string[] = fieldValues.filter((item) => !myArray.includes(item));
+      if (valuesNotInJSON.length > 0) {
+        throw new Error(`Values '${valuesNotInJSON.join(', ')}' do not exist in the ${fieldName}. `);
       }
-    } else if (!['sobject', 'template-name'].includes(key)) {
-      throw new Error(`Skipped: '${key}' flag can not be passed in the current command`);
+      if (Array.isArray(myArray)) {
+        const updatedArray: string[] = myArray.filter(
+          (item): item is string => typeof item === 'string' && !fieldValues.includes(item)
+        );
+
+        updatedJsonData[fieldName] = updatedArray;
+
+        if (fieldName === 'output-format' && updatedArray.length === 0) {
+          throw new Error(
+            "Error: All the values from 'output-format' cannot be deleted! You must leave at least one value."
+          );
+        }
+
+        console.log(`Removing '${myArray.join(', ')}' from the ${fieldName}.`);
+      }
+    } else {
+      throw error(`${fieldName} does not exist in the data template.`);
     }
   }
+  return jsonData;
 }
-export const templateAddFlags = {
-  sobject: Flags.string({
-    char: 's',
-    summary: messages.getMessage('flags.sobject.summary'),
-    description: messages.getMessage('flags.sobject.description'),
-    required: false,
-  }),
-  'template-name': Flags.string({
-    char: 't',
-    summary: messages.getMessage('flags.template-name.summary'),
-    description: messages.getMessage('flags.template-name.description'),
-    required: true,
-  }),
-  language: Flags.string({
-    char: 'l',
-    summary: messages.getMessage('flags.language.summary'),
-    description: messages.getMessage('flags.language.description'),
-    required: false,
-  }),
-  count: Flags.integer({
-    char: 'c',
-    summary: messages.getMessage('flags.count.summary'),
-    description: messages.getMessage('flags.count.description'),
-    required: false,
-  }),
-  'namespace-to-exclude': Flags.string({
-    char: 'x',
-    summary: messages.getMessage('flags.namespace-to-exclude.summary'),
-    description: messages.getMessage('flags.namespace-to-exclude.description'),
-    required: false,
-  }),
-  'output-format': Flags.string({
-    char: 'f',
-    summary: messages.getMessage('flags.output-format.summary'),
-    description: messages.getMessage('flags.output-format.description'),
-    required: false,
-  }),
-  'fields-to-exclude': Flags.string({
-    char: 'e',
-    summary: messages.getMessage('flags.fields-to-exclude.summary'),
-    description: messages.getMessage('flags.fields-to-exclude.description'),
-    required: false,
-  }),
-};
 
-let config: templateSchema;
-export default class TemplateAdd extends SfCommand<void> {
+function DeleteSObjectArrayValue(jsonData: templateSchema, sObjectName: string, fieldValues: string[]): templateSchema {
+  const concernedObject = jsonData.sobjects.find((obj) => Object.prototype.hasOwnProperty.call(obj, sObjectName));
+  if (!concernedObject) {
+    throw new Error(`The specified sObject '${sObjectName}' does not exist in the data template file.`);
+  }
+  if (concernedObject) {
+    const existingValues = concernedObject[sObjectName]?.['fields-to-exclude'];
+    if (existingValues !== undefined) {
+      const valuesNotInJSON: string[] = fieldValues.filter((item) => !existingValues.includes(item));
+      if (valuesNotInJSON.length > 0) {
+        throw new Error(
+          `Values '${valuesNotInJSON.join(
+            ', '
+          )}' do not exist in the 'fields-to-exclude' of sobject '${sObjectName}' settings `
+        );
+      }
+      const updatedArray = existingValues.filter((item) => !fieldValues.includes(item));
+      console.log(
+        `Removing '${existingValues.join(', ')}' from the 'fields-to-exclude' of sobject '${sObjectName}' settings.`
+      );
+      concernedObject[sObjectName]['fields-to-exclude'] = updatedArray;
+    } else {
+      throw new Error(`The 'fields-to-exclude' field does not exist for sobject '${sObjectName}' settings.`);
+    }
+  }
+  return jsonData;
+}
+
+export default class TemplateRemove extends SfCommand<TemplateRemoveResult> {
   public static readonly summary: string = messages.getMessage('summary');
 
   public static readonly examples: string[] = [messages.getMessage('Examples')];
 
-  public static readonly flags = templateAddFlags;
+  public static readonly flags = {
+    'template-name': Flags.string({
+      summary: messages.getMessage('flags.template-name.summary'),
+      description: messages.getMessage('flags.template-name.description'),
+      char: 't',
+      required: true,
+    }),
+    sobject: Flags.string({
+      summary: messages.getMessage('flags.sobject.summary'),
+      description: messages.getMessage('flags.sobject.description'),
+      char: 's',
+    }),
+    language: Flags.boolean({
+      summary: messages.getMessage('flags.language.summary'),
+      description: messages.getMessage('flags.language.description'),
+      char: 'l',
+    }),
+    count: Flags.boolean({
+      summary: messages.getMessage('flags.count.summary'),
+      description: messages.getMessage('flags.count.description'),
+      char: 'c',
+    }),
+    'namespace-to-exclude': Flags.string({
+      summary: messages.getMessage('flags.namespace-to-exclude.summary'),
+      description: messages.getMessage('flags.namespace-to-exclude.description'),
+      char: 'x',
+      multiple: true,
+    }),
+    'output-format': Flags.string({
+      summary: messages.getMessage('flags.output-format.summary'),
+      description: messages.getMessage('flags.output-format.description'),
+      char: 'f',
+      multiple: true,
+    }),
+    'fields-to-exclude': Flags.string({
+      summary: messages.getMessage('flags.fields-to-exclude.summary'),
+      description: messages.getMessage('flags.fields-to-exclude.description'),
+      char: 'e',
+      multiple: true,
+    }),
+  };
 
-  public async run(): Promise<void> {
-    const { flags } = await this.parse(TemplateAdd);
+  public async run(): Promise<TemplateRemoveResult> {
+    const { flags } = await this.parse(TemplateRemove);
+    const flagKeys = Object.keys(flags);
 
-    let filename = flags['template-name'];
+    const templateName = flags['template-name'];
+    const filename = templateName.endsWith('.json') ? templateName : `${templateName}.json`;
     if (!filename) {
-      this.error('Error: You must specify a filename using the --templateName flag.');
-    } else if (!filename.endsWith('.json')) {
-      filename += '.json';
+      this.error('Error: You must specify a filename using the --template-name flag.');
+    }
+    const templateDirPath = path.join(process.cwd(), 'data_gen/templates');
+    if (!fs.existsSync(templateDirPath)) {
+      this.error(`Template directory does not exist at ${templateDirPath}. Please initialize the setup first.`);
+    }
+    const configFilePath = path.join(templateDirPath, filename);
+    if (!fs.existsSync(configFilePath)) {
+      this.error(`Data Template file not found at ${configFilePath}`);
     }
 
-    const objectName = flags.sobject ? flags.sobject.toLowerCase() : undefined;
+    let jsonData = JSON.parse(fs.readFileSync(configFilePath, 'utf8')) as templateSchema;
 
-    try {
-      // Variable Declarations and validatons
-      const cwd = process.cwd();
-      const dataGenDirPath = path.join(cwd, 'data_gen');
-
-      const templateDirPath = path.join(dataGenDirPath, 'templates');
-      if (!fs.existsSync(templateDirPath)) {
-        this.error(`Template directory does not exist at ${templateDirPath}. Please initialize the setup first.`);
-      }
-
-      const configFilePath = path.join(templateDirPath, filename);
-      if (!fs.existsSync(configFilePath)) {
-        this.error(`Config file not found at ${configFilePath}`);
-      }
-
-      config = JSON.parse(fs.readFileSync(configFilePath, 'utf8')) as templateSchema;
-      let allowedFlags = [];
-
-      // Checking if Object Flag is passed or not
-
-      if (objectName) {
-        this.log(chalk.magenta.bold(`Working on the object level settings for ${objectName}`));
-        if (!Array.isArray(config.sobjects)) {
-          config.sobjects = [];
-        }
-        let objectConfig = config.sobjects.find(
-          (obj: SObjectItem): boolean => Object.keys(obj)[0] === objectName
-        ) as SObjectItem;
-        if (!objectConfig) {
-          const addToTemplate = await askQuestion(
-            chalk.yellow(`'${objectName}' does not exists in data template! Do you want to add?`) + chalk.dim('(Y/n)')
-          );
-          if (addToTemplate.toLowerCase() === 'yes' || addToTemplate.toLowerCase() === 'y') {
-            objectConfig = { [objectName]: {} };
-            config.sobjects.push(objectConfig);
-          } else {
-            return;
-          }
-        }
-        const configFileForSobject: typeSObjectSettingsMap = objectConfig[objectName];
-        allowedFlags = ['fields-to-exclude', 'language', 'count'];
-        updateOrInitializeConfig(configFileForSobject, flags, allowedFlags, this.log.bind(this));
-      } else {
-        const configFile: templateSchema = config;
-        allowedFlags = ['output-format', 'namespace-to-exclude', 'language', 'count'];
-        updateOrInitializeConfig(configFile, flags, allowedFlags, this.log.bind(this));
-      }
-
-      // updateOrInitializeConfig(configFile, flags, allowedFlags, this.log.bind(this));
-      fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8');
-      // const connection = await getConnectionWithSalesforce();
-      // await validateConfigJson(connection, configFilePath);
-      this.log(chalk.green(`Success: Configuration updated in ${configFilePath}`));
-    } catch (error) {
-      this.error(`Process halted: ${(error as Error).message}`);
+    if (flagKeys.length === 1 && flagKeys.includes('template-name')) {
+      this.error('Error: Data Template File cannot be deleted! You must specify at least one setting flag to remove');
     }
+
+    if (!flags.sobject) {
+      if (flags['fields-to-exclude'] !== undefined || flags.count || flags.language) {
+        const errorMessage = flags.count
+          ? 'Default count can not be deleted! You can update instead.'
+          : 'Default language can not be deleted! You can update instead.';
+
+        throw new Error(errorMessage);
+      }
+      if (flags['namespace-to-exclude']) {
+        jsonData = DeleteArrayValue(jsonData, 'namespace-to-exclude', parseInput(flags['namespace-to-exclude']));
+      }
+      if (flags['output-format']) {
+        jsonData = DeleteArrayValue(jsonData, 'output-format', parseInput(flags['output-format']));
+      }
+    } else {
+      if (flags['namespace-to-exclude'] !== undefined || flags['output-format'] !== undefined) {
+        const errorMessage = flags['namespace-to-exclude']
+          ? 'You cannot use global flag "namespace-to-exclude" with an SObject flag.'
+          : 'You cannot use global flag "output-format" with an SObject flag.';
+
+        throw new Error(errorMessage);
+      }
+
+      const sObject = flags.sobject;
+      if (flags.count) {
+        jsonData = deleteSObjectField(jsonData, sObject, 'count');
+      }
+      if (flags.language) {
+        jsonData = deleteSObjectField(jsonData, sObject, 'language');
+      }
+      if (flags['fields-to-exclude']) {
+        jsonData = DeleteSObjectArrayValue(jsonData, sObject, parseInput(flags['fields-to-exclude']));
+      }
+      if (!flags.count && !flags.language && !flags['fields-to-exclude']) {
+        const sObjectNames = parseInput([sObject]);
+        console.log(sObjectNames);
+        jsonData = DeletesObject(jsonData, sObjectNames);
+      }
+    }
+    fs.writeFileSync(configFilePath, JSON.stringify(jsonData, null, 2), 'utf8');
+    this.log(chalk.green(`Success: Configuration updated in data template file ${configFilePath}`));
+
+    return {
+      path: 'src/commands/template/remove.ts',
+    };
   }
 }
