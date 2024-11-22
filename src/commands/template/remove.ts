@@ -34,7 +34,7 @@ function deleteSObjectField(jsonData: templateSchema, sObjectName: string, field
 
   if (sObject?.[sObjectName]) {
     if (Object.prototype.hasOwnProperty.call(sObject[sObjectName], fieldName)) {
-      console.log(`Removing ${fieldName} from the ${sObjectName} settings.`);
+      console.log(`Removing ${fieldName} from the sobject ${sObjectName} settings.`);
       delete sObject[sObjectName][fieldName as keyof typeSObjectSettingsMap];
     } else {
       throw new Error(`The specified flag '${fieldName}' does not exist in the '${sObjectName}' sObject.`);
@@ -46,11 +46,13 @@ function deleteSObjectField(jsonData: templateSchema, sObjectName: string, field
 }
 
 function DeletesObject(jsonData: templateSchema, sObjectNames: string[]): templateSchema {
-  sObjectNames.forEach((sObjectName) => {
-    const sObjectIndex = jsonData.sobjects.findIndex((obj) => Object.prototype.hasOwnProperty.call(obj, sObjectName));
+  sObjectNames.map((sObjectName) => {
+    const sObjectIndex = jsonData.sobjects.findIndex((obj) =>
+      Object.prototype.hasOwnProperty.call(obj, sObjectName.toLocaleLowerCase())
+    );
 
     if (sObjectIndex === -1) {
-      throw new Error(`The specified sObject '${sObjectName}' does not exist in the JSON file.`);
+      throw new Error(`The specified sObject '${sObjectName}' does not exist in the data template file.`);
     }
 
     jsonData.sobjects.splice(sObjectIndex, 1);
@@ -79,13 +81,16 @@ function DeleteArrayValue(
     if (Object.prototype.hasOwnProperty.call(jsonData, fieldName)) {
       const myArray: string[] = jsonData[fieldName];
 
-      const valuesNotInJSON: string[] = fieldValues.filter((item) => !myArray.includes(item));
+      const valuesNotInJSON: string[] = fieldValues.filter(
+        (item) => !myArray.map((str) => str.toLowerCase()).includes(item.toLowerCase())
+      );
       if (valuesNotInJSON.length > 0) {
         throw new Error(`Values '${valuesNotInJSON.join(', ')}' do not exist in the ${fieldName}. `);
       }
       if (Array.isArray(myArray)) {
         const updatedArray: string[] = myArray.filter(
-          (item): item is string => typeof item === 'string' && !fieldValues.includes(item)
+          (item): item is string =>
+            typeof item === 'string' && !fieldValues.map((value) => value.toLowerCase()).includes(item.toLowerCase())
         );
 
         updatedJsonData[fieldName] = updatedArray;
@@ -113,7 +118,9 @@ function DeleteSObjectArrayValue(jsonData: templateSchema, sObjectName: string, 
   if (concernedObject) {
     const existingValues = concernedObject[sObjectName]?.['fields-to-exclude'];
     if (existingValues !== undefined) {
-      const valuesNotInJSON: string[] = fieldValues.filter((item) => !existingValues.includes(item));
+      const valuesNotInJSON: string[] = fieldValues.filter(
+        (item) => !existingValues.map((val) => val.toLowerCase()).includes(item.toLowerCase())
+      );
       if (valuesNotInJSON.length > 0) {
         throw new Error(
           `Values '${valuesNotInJSON.join(
@@ -121,7 +128,9 @@ function DeleteSObjectArrayValue(jsonData: templateSchema, sObjectName: string, 
           )}' do not exist in the 'fields-to-exclude' of sobject '${sObjectName}' settings `
         );
       }
-      const updatedArray = existingValues.filter((item) => !fieldValues.includes(item));
+      const updatedArray = existingValues.filter(
+        (item) => !fieldValues.map((val) => val.toLowerCase()).includes(item.toLowerCase())
+      );
       console.log(
         `Removing '${existingValues.join(', ')}' from the 'fields-to-exclude' of sobject '${sObjectName}' settings.`
       );
@@ -239,7 +248,6 @@ export default class TemplateRemove extends SfCommand<TemplateRemoveResult> {
       }
       if (!flags.count && !flags.language && !flags['fields-to-exclude']) {
         const sObjectNames = parseInput([sObject]);
-        console.log(sObjectNames);
         jsonData = DeletesObject(jsonData, sObjectNames);
       }
     }
