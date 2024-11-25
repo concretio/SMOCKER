@@ -1,13 +1,10 @@
-/* eslint-disable no-console */
-/* eslint-disable sf-plugin/flag-case */
-/* eslint-disable @typescript-eslint/unbound-method */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as dotenv from 'dotenv';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages, Connection, Org } from '@salesforce/core';
 import chalk from 'chalk';
-import { loading } from 'cli-loading-animation';
+import { loading, LoaderActions } from 'cli-loading-animation';
 import Spinner from 'cli-spinners';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
@@ -18,7 +15,7 @@ type TemplateValidateResult = {
 };
 
 type sObjectSchemaType = {
-  fieldsToExclude?: string[];
+  'fields-to-exclude'?: string[];
   count?: number;
   language?: string;
 };
@@ -26,12 +23,12 @@ type sObjectSchemaType = {
 type SObjectItem = { [key: string]: sObjectSchemaType };
 
 type templateSchema = {
-  templateFileName: string;
-  namespaceToExclude: string[];
-  outputFormat: string[];
+  'template-file-name': string;
+  'namespace-to-exclude': string[];
+  'output-format': string[];
   language: string;
   count: number;
-  sObjects: SObjectItem[];
+  sobjects: SObjectItem[];
 };
 
 type Field = {
@@ -74,24 +71,28 @@ export async function getConnectionWithSalesforce(): Promise<Connection> {
 
 export async function validateConfigJson(connection: Connection, configPath: string): Promise<void> {
   try {
-    const { start, stop } = loading('\nPlease wait!! while we validate Objects and Fields from connected org.', {
+    const actions: LoaderActions = loading('\nPlease wait!! while we validate Objects and Fields from connected org.', {
       clearOnEnd: true,
       spinner: Spinner.bouncingBar,
     });
+
+    const start: () => void = () => actions.start();
+    const stop: () => void = () => actions.stop();
+
     start();
     const config: templateSchema = JSON.parse(fs.readFileSync(configPath, 'utf8')) as templateSchema;
 
     const invalidObjects: string[] = [];
     const invalidFieldsMap: { [key: string]: string[] } = {};
 
-    const sObjectNames: string[] = config.sObjects.map(
+    const sObjectNames: string[] = config.sobjects.map(
       (sObjectEntry: sObjectSchemaType) => Object.keys(sObjectEntry)[0]
     );
 
     const metadata = await connection.metadata.read('CustomObject', sObjectNames);
     const metadataArray = Array.isArray(metadata) ? metadata : [metadata];
 
-    for (const sObjectEntry of config.sObjects) {
+    for (const sObjectEntry of config.sobjects) {
       const [sObjectName, sObjectData] = Object.entries(sObjectEntry)[0] as [string, sObjectSchemaType];
       const sObjectMeta = metadataArray.find((meta) => meta.fullName === sObjectName) as sObjectMetaType;
 
@@ -113,7 +114,7 @@ export async function validateConfigJson(connection: Connection, configPath: str
         getAllFields.push('name');
       }
 
-      const fieldsToExclude = sObjectData['fieldsToExclude'] ?? [];
+      const fieldsToExclude = sObjectData['fields-to-exclude'] ?? [];
 
       const invalidFields = fieldsToExclude.filter((field: string) => !getAllFields.includes(field));
       if (invalidFields.length > 0) {
@@ -158,9 +159,9 @@ export class TemplateValidate extends SfCommand<TemplateValidateResult> {
   public static readonly examples: string[] = [messages.getMessage('Examples')];
 
   public static readonly flags = {
-    templateName: Flags.string({
-      summary: messages.getMessage('flags.templateName.summary'),
-      description: messages.getMessage('flags.templateName.description'),
+    'template-name': Flags.string({
+      summary: messages.getMessage('flags.template-name.summary'),
+      description: messages.getMessage('flags.template-name.description'),
       char: 't',
       required: true,
     }),
@@ -169,7 +170,9 @@ export class TemplateValidate extends SfCommand<TemplateValidateResult> {
   public async run(): Promise<TemplateValidateResult> {
     const { flags } = await this.parse(TemplateValidate);
     const currWorkingDir = process.cwd();
-    const sanitizeFilename = flags.templateName.endsWith('.json') ? flags.templateName : flags.templateName + '.json';
+    const sanitizeFilename = flags['template-name'].endsWith('.json')
+      ? flags['template-name']
+      : flags['template-name'] + '.json';
     const templateDirPath = path.join(currWorkingDir, `data_gen/templates/${sanitizeFilename}`);
 
     if (fs.existsSync(templateDirPath)) {
@@ -177,7 +180,7 @@ export class TemplateValidate extends SfCommand<TemplateValidateResult> {
       console.log(chalk.cyan('Success: SF Connection established.'));
       await validateConfigJson(connection, templateDirPath);
     } else {
-      throw new Error(`File: ${flags.templateName} is not present at this path: ${templateDirPath}`);
+      throw new Error(`File: ${flags['template-name']} is not present at this path: ${templateDirPath}`);
     }
 
     return {
