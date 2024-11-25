@@ -1,14 +1,7 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-/* eslint-disable complexity */
-/* eslint-disable no-console */
-/* eslint-disable no-await-in-loop */
-
 import * as readline from 'node:readline';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import chalk from 'chalk';
-import { loading } from 'cli-loading-animation';
-import Spinner from 'cli-spinners';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import Enquirer from 'enquirer';
@@ -57,70 +50,73 @@ function handleDirStruct(): string {
   }
 }
 
-  async function runMultiSelectPrompt(): Promise<string[]> {
-    try {
-      type Answers = {
-        choices: string[]; 
-      };
+async function runMultiSelectPrompt(): Promise<string[]> {
+  try {
+    type Answers = {
+      choices: string[];
+    };
 
-      const outputChoices = [
-        { name: 'DI',   message: 'DI',   value: 'di', hint: 'Create records into org (limit- upto 200)'}, 
-        { name: 'JSON', message: 'JSON', value: 'json' }, 
-        { name: 'CSV',  message: 'CSV',  value: 'csv' } 
-      ];
+    const outputChoices = [
+      { name: 'DI', message: 'DI', value: 'di', hint: 'Create records into org (limit- upto 200)' },
+      { name: 'JSON', message: 'JSON', value: 'json' },
+      { name: 'CSV', message: 'CSV', value: 'csv' },
+    ];
     // Listen for Ctrl+C and terminate the CLI
     process.on('SIGINT', () => {
       console.log('\nCLI terminated by the user.');
       process.exit(0);
     });
 
-      const answers = await Enquirer.prompt<Answers>({
-        type: 'multiselect',
-        name: 'choices',
-        message: 'Provide output format for generated records [CSV, JSON, and DI-Direct Insertion Supported]',
-        choices: outputChoices,
-      });
+    const answers = await Enquirer.prompt<Answers>({
+      type: 'multiselect',
+      name: 'choices',
+      message: 'Provide output format for generated records [CSV, JSON, and DI-Direct Insertion Supported]',
+      choices: outputChoices,
+    });
 
-      return answers.choices;
-    } catch (error) {
-      if (error === '') {
-        // Handle Ctrl+C gracefully
-        console.log('\nCLI terminated by the user.');
-        process.exit(0);
-      }
-      console.error('Error:', error);
-      return [];
+    return answers.choices;
+  } catch (error) {
+    if (error === '') {
+      // Handle Ctrl+C gracefully
+      console.log('\nCLI terminated by the user.');
+      process.exit(0);
     }
+    console.error('Error:', error);
+    return [];
   }
-  
-  async function runSelectPrompt(question: string, myChoices: Array<{name: string; message: string; value: string; hint?: string}>): Promise<string> {
-    try {
-      type Answers = {
-        choices: string; 
-      };
-          // Listen for Ctrl+C and terminate the CLI
+}
+
+async function runSelectPrompt(
+  question: string,
+  myChoices: Array<{ name: string; message: string; value: string; hint?: string }>
+): Promise<string> {
+  try {
+    type Answers = {
+      choices: string;
+    };
+    // Listen for Ctrl+C and terminate the CLI
     process.on('SIGINT', () => {
       console.log('\nCLI terminated by the user.');
       process.exit(0);
     });
-      const answers = await Enquirer.prompt<Answers>({
-        type: 'select',
-        name: 'choices',
-        message: question,
-        choices: myChoices,
-      });
+    const answers = await Enquirer.prompt<Answers>({
+      type: 'select',
+      name: 'choices',
+      message: question,
+      choices: myChoices,
+    });
 
-      return answers.choices;
-    } catch (error) {
-      if (error === '') {
-        // Handle Ctrl+C gracefully
-        console.log('\nCLI terminated by the user.');
-        process.exit(0);
-      }
-      console.error('Error:', error);
-      return '';
+    return answers.choices;
+  } catch (error) {
+    if (error === '') {
+      // Handle Ctrl+C gracefully
+      console.log('\nCLI terminated by the user.');
+      process.exit(0);
     }
-  }  
+    console.error('Error:', error);
+    return '';
+  }
+}
 
 /*
   This function validate the template name and checks the suffix.
@@ -173,10 +169,7 @@ export const askQuestion = (query: string, defaultValue?: string): Promise<strin
 
 export default class SetupInit extends SfCommand<SetupInitResult> {
   public static readonly summary: string = messages.getMessage('summary');
-  public static readonly examples = [
-    messages.getMessage('Examples')
-  ];
-
+  public static readonly examples = [messages.getMessage('Examples')];
 
   public static readonly flags = {
     default: Flags.boolean({
@@ -186,20 +179,12 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       required: false,
     }),
   };
-  
-public async run(): Promise<SetupInitResult> {
+
+  public async run(): Promise<SetupInitResult> {
     const { flags } = await this.parse(SetupInit);
-    const { start, stop } = loading('Establishing Connection with Org', {
-      clearOnEnd: true,
-      spinner: Spinner.line2,
-    });
-    
-    start();
+
     const dirname = handleDirStruct();
     const templatePath = path.join(dirname, 'templates');
-    // const connection = await getConnectionWithSalesforce();
-    stop();
-    // console.log(chalk.cyan('Success: SF Connection established.'));
 
     console.log(chalk.bold('====================================='));
     console.log(chalk.bold('🚀 Creating Data Template File 🚀'));
@@ -305,26 +290,40 @@ public async run(): Promise<SetupInitResult> {
       }
     }
 
-    /* generate data in language */   
+    /* generate data in language */
     const languageChoices = [
-        { name: 'en', message: 'en', value: 'en', hint: 'English (US)'}, 
-        { name: 'jp', message: 'jp', value: 'jp', hint: 'Japanese'}, 
-      ]; 
+      { name: 'en', message: 'en', value: 'en', hint: 'English (US)' },
+      { name: 'jp', message: 'jp', value: 'jp', hint: 'Japanese' },
+    ];
     const language = await runSelectPrompt('In which language would you like to generate test data?', languageChoices);
 
     /* record count */
-    
+
     let count = 0;
     while (count === 0) {
-      const preSanitizedCount = parseInt(await askQuestion(
-        'Specify the number of test data records to generate' + chalk.dim(' (e.g., 5)'),
-        '1'
-      ), 10);
-      if (preSanitizedCount > 0 && preSanitizedCount <= 200 && outputFormat.includes('di') && !isNaN(preSanitizedCount)) {
+      const preSanitizedCount = parseInt(
+        await askQuestion('Specify the number of test data records to generate' + chalk.dim(' (e.g., 5)'), '1'),
+        10
+      );
+      if (
+        preSanitizedCount > 0 &&
+        preSanitizedCount <= 200 &&
+        outputFormat.includes('di') &&
+        !isNaN(preSanitizedCount)
+      ) {
         count = preSanitizedCount;
         break;
-      } else if (preSanitizedCount > 0 && preSanitizedCount <= 1000 && preSanitizedCount !== undefined && !isNaN(preSanitizedCount) && !outputFormat.includes('di')) {
+      } else if (
+        preSanitizedCount > 0 &&
+        preSanitizedCount <= 1000 &&
+        preSanitizedCount !== undefined &&
+        !isNaN(preSanitizedCount) &&
+        !outputFormat.includes('di')
+      ) {
         count = preSanitizedCount;
+        break;
+      } else if (isNaN(preSanitizedCount)) {
+        count = 1;
         break;
       }
 
@@ -349,6 +348,10 @@ public async run(): Promise<SetupInitResult> {
       (obj, index) => tempObjectsToConfigure.indexOf(obj) === index
     );
 
+    if (objectsToConfigure.length === 0) {
+      objectsToConfigure.push('lead');
+    }
+
     let overwriteGlobalSettings = await askQuestion(
       'Would you like to customize settings for individual SObjects? (Y/n)',
       'n'
@@ -356,13 +359,16 @@ public async run(): Promise<SetupInitResult> {
     const sObjectSettingsMap: { [key: string]: typeSObjectSettingsMap } = {};
 
     while (overwriteGlobalSettings.toLowerCase() === 'yes' || overwriteGlobalSettings.toLowerCase() === 'y') {
-      const objInTemplateChoices = objectsToConfigure.map(obj => ({
+      const objInTemplateChoices = objectsToConfigure.map((obj) => ({
         name: obj,
         message: obj,
-        value: obj
+        value: obj,
       }));
-      
-      const sObjectName = await runSelectPrompt('Which Object(API name) would you like to override the global settings for?', objInTemplateChoices);
+
+      const sObjectName = await runSelectPrompt(
+        'Which Object(API name) would you like to override the global settings for?',
+        objInTemplateChoices
+      );
       if (!sObjectName) {
         overwriteGlobalSettings = await askQuestion(
           'Would you like to customize settings for individual SObjects? (Y/n)',
@@ -372,10 +378,6 @@ public async run(): Promise<SetupInitResult> {
           break;
         }
         continue;
-      }
-
-      if (objectsToConfigure.length === 0) {
-        objectsToConfigure.push('lead');
       }
 
       if (!objectsToConfigure.includes(sObjectName)) {
@@ -423,7 +425,10 @@ public async run(): Promise<SetupInitResult> {
       }
 
       // Note:languageChoices is defined above already
-      const ovrrideSelectedLangVal = await runSelectPrompt(`[${sObjectName}] Language in which test data should be generated`, languageChoices);
+      const ovrrideSelectedLangVal = await runSelectPrompt(
+        `[${sObjectName}] Language in which test data should be generated`,
+        languageChoices
+      );
       if (ovrrideSelectedLangVal) {
         sObjectSettingsMap[sObjectName].language = ovrrideSelectedLangVal;
       }
@@ -441,7 +446,6 @@ public async run(): Promise<SetupInitResult> {
         return { [obj]: {} };
       }
     });
-
     const config: SetupInitResult = {
       templateFileName,
       namespaceToExclude,
