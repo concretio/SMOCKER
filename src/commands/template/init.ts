@@ -1,14 +1,7 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-/* eslint-disable complexity */
-/* eslint-disable no-console */
-/* eslint-disable no-await-in-loop */
-
 import * as readline from 'node:readline';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import chalk from 'chalk';
-import { loading } from 'cli-loading-animation';
-import Spinner from 'cli-spinners';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import Enquirer from 'enquirer';
@@ -20,16 +13,16 @@ const messages = Messages.loadMessages('smocker-concretio', 'template.init');
 
 /* ------------------- Types ---------------------- */
 export type SetupInitResult = {
-  templateFileName: string;
-  namespaceToExclude: string[];
-  outputFormat: string[];
+  'template-file-name': string;
+  'namespace-to-exclude': string[];
+  'output-format': string[];
   language: string;
   count: number;
-  sObjects: Array<{ [key: string]: typeSObjectSettingsMap }>;
+  sobjects: Array<{ [key: string]: typeSObjectSettingsMap }>;
 };
 
 type typeSObjectSettingsMap = {
-  fieldsToExclude?: string[];
+  'fields-to-exclude'?: string[];
   count?: number;
   language?: string;
 };
@@ -57,70 +50,54 @@ function handleDirStruct(): string {
   }
 }
 
-  async function runMultiSelectPrompt(): Promise<string[]> {
-    try {
-      type Answers = {
-        choices: string[]; 
-      };
+async function runMultiSelectPrompt(): Promise<string[]> {
+  try {
+    type Answers = {
+      choices: string[];
+    };
 
-      const outputChoices = [
-        { name: 'DI',   message: 'DI',   value: 'di', hint: 'Create records into org (limit- upto 200)'}, 
-        { name: 'JSON', message: 'JSON', value: 'json' }, 
-        { name: 'CSV',  message: 'CSV',  value: 'csv' } 
-      ];
-    // Listen for Ctrl+C and terminate the CLI
-    process.on('SIGINT', () => {
-      console.log('\nCLI terminated by the user.');
-      process.exit(0);
+    const outputChoices = [
+      { name: 'DI', message: 'DI', value: 'di', hint: 'Create records into org (limit- upto 200)' },
+      { name: 'JSON', message: 'JSON', value: 'json' },
+      { name: 'CSV', message: 'CSV', value: 'csv' },
+    ];
+
+    const answers = await Enquirer.prompt<Answers>({
+      type: 'multiselect',
+      name: 'choices',
+      message: 'Provide output format for generated records [CSV, JSON, and DI-Direct Insertion Supported]',
+      choices: outputChoices,
     });
 
-      const answers = await Enquirer.prompt<Answers>({
-        type: 'multiselect',
-        name: 'choices',
-        message: 'Provide output format for generated records [CSV, JSON, and DI-Direct Insertion Supported]',
-        choices: outputChoices,
-      });
-
-      return answers.choices;
-    } catch (error) {
-      if (error === '') {
-        // Handle Ctrl+C gracefully
-        console.log('\nCLI terminated by the user.');
-        process.exit(0);
-      }
-      console.error('Error:', error);
-      return [];
-    }
+    return answers.choices;
+  } catch (error) {
+    console.error('Error:', error);
+    return [];
   }
-  
-  async function runSelectPrompt(question: string, myChoices: Array<{name: string; message: string; value: string; hint?: string}>): Promise<string> {
-    try {
-      type Answers = {
-        choices: string; 
-      };
-          // Listen for Ctrl+C and terminate the CLI
-    process.on('SIGINT', () => {
-      console.log('\nCLI terminated by the user.');
-      process.exit(0);
-    });
-      const answers = await Enquirer.prompt<Answers>({
-        type: 'select',
-        name: 'choices',
-        message: question,
-        choices: myChoices,
-      });
+}
 
-      return answers.choices;
-    } catch (error) {
-      if (error === '') {
-        // Handle Ctrl+C gracefully
-        console.log('\nCLI terminated by the user.');
-        process.exit(0);
-      }
-      console.error('Error:', error);
-      return '';
-    }
-  }  
+async function runSelectPrompt(
+  question: string,
+  myChoices: Array<{ name: string; message: string; value: string; hint?: string }>
+): Promise<string> {
+  try {
+    type Answers = {
+      choices: string;
+    };
+
+    const answers = await Enquirer.prompt<Answers>({
+      type: 'select',
+      name: 'choices',
+      message: question,
+      choices: myChoices,
+    });
+
+    return answers.choices;
+  } catch (error) {
+    console.error('Error:', error);
+    return '';
+  }
+}
 
 /*
   This function validate the template name and checks the suffix.
@@ -173,10 +150,7 @@ export const askQuestion = (query: string, defaultValue?: string): Promise<strin
 
 export default class SetupInit extends SfCommand<SetupInitResult> {
   public static readonly summary: string = messages.getMessage('summary');
-  public static readonly examples = [
-    messages.getMessage('Examples')
-  ];
-
+  public static readonly examples = [messages.getMessage('Examples')];
 
   public static readonly flags = {
     default: Flags.boolean({
@@ -186,20 +160,12 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       required: false,
     }),
   };
-  
-public async run(): Promise<SetupInitResult> {
+
+  public async run(): Promise<SetupInitResult> {
     const { flags } = await this.parse(SetupInit);
-    const { start, stop } = loading('Establishing Connection with Org', {
-      clearOnEnd: true,
-      spinner: Spinner.line2,
-    });
-    
-    start();
+
     const dirname = handleDirStruct();
     const templatePath = path.join(dirname, 'templates');
-    // const connection = await getConnectionWithSalesforce();
-    stop();
-    // console.log(chalk.cyan('Success: SF Connection established.'));
 
     console.log(chalk.bold('====================================='));
     console.log(chalk.bold('🚀 Creating Data Template File 🚀'));
@@ -218,17 +184,17 @@ public async run(): Promise<SetupInitResult> {
         {
           "_comment_importantNote": "We highly recommend removing all the comments for a cleaner exeperience once you are comfortable with this json format",
 
-          "_comment_templateFileName": "The filename of the data template.",
+          "_comment_template-file-name": "The filename of the data template.",
 
-          "templateFileName": "${path.basename(defaultTemplatePath)}",
+          "template-file-name": "${path.basename(defaultTemplatePath)}",
           
-          "_comment_namespaceToExclude": "Fields from these namespace(s) will be excluded while generating test data",
-          "_example_namespaceToExclude": "namespaceToExclude:['namespace1','namespace2']",
-          "namespaceToExclude": [],
+          "_comment_namespace-to-exclude": "Fields from these namespace(s) will be excluded while generating test data",
+          "_example_namespace-to-exclude": "namespace-to-exclude:['namespace1','namespace2']",
+          "namespace-to-exclude": [],
           
-          "_comment_outputFormat": "Desired output format(s) for the storing the generated test data; Only 3 values are valid- csv,json and di(i.e. for direct insertion of upto 200 records into the connected org)",
-          "_example_outputFormat": "outputFormat:['csv','json','di']",
-          "outputFormat": ["csv"],
+          "_comment_output-format": "Desired output format(s) for the storing the generated test data; Only 3 values are valid- csv,json and di(i.e. for direct insertion of upto 200 records into the connected org)",
+          "_example_output-format": "output-format:['csv','json','di']",
+          "output-format": ["csv"],
           
           "_comment_language": "Specifies the default language for data generation; applies to all sObjects unless overridden (e.g., 'en' for English).",
           "language": "en",
@@ -236,15 +202,15 @@ public async run(): Promise<SetupInitResult> {
           "_comment_count": "Specifies the default count for data generation; applies to all sObjects unless overridden",
           "count": 1,
           
-          "_comment_sObjects": "Lists Salesforce objects (API names) to generate test data for.",
-          "sObjects": [
+          "_comment_sobjects": "Lists Salesforce objects (API names) to generate test data for.",
+          "sobjects": [
             {"account": {}},
             {"contact": {}},
             {
               "lead": {
                 "_comment_sobjectLevel": "These settings are object specific, so here these are set for lead object only",
-                "_comment_fieldsToExclude": "Lists fields to exclude from generating test data for the Lead object.",
-                "fieldsToExclude": ["fax", "website"],
+                "_comment_fields-to-exclude": "Lists fields to exclude from generating test data for the Lead object.",
+                "fields-to-exclude": ["fax", "website"],
 
                 "_comment_language": "Specifies language for generating test data for the Lead object.",
                 "language": "en",
@@ -305,26 +271,40 @@ public async run(): Promise<SetupInitResult> {
       }
     }
 
-    /* generate data in language */   
+    /* generate data in language */
     const languageChoices = [
-        { name: 'en', message: 'en', value: 'en', hint: 'English (US)'}, 
-        { name: 'jp', message: 'jp', value: 'jp', hint: 'Japanese'}, 
-      ]; 
+      { name: 'en', message: 'en', value: 'en', hint: 'English (US)' },
+      { name: 'jp', message: 'jp', value: 'jp', hint: 'Japanese' },
+    ];
     const language = await runSelectPrompt('In which language would you like to generate test data?', languageChoices);
 
     /* record count */
-    
+
     let count = 0;
     while (count === 0) {
-      const preSanitizedCount = parseInt(await askQuestion(
-        'Specify the number of test data records to generate' + chalk.dim(' (e.g., 5)'),
-        '1'
-      ), 10);
-      if (preSanitizedCount > 0 && preSanitizedCount <= 200 && outputFormat.includes('di') && !isNaN(preSanitizedCount)) {
+      const preSanitizedCount = parseInt(
+        await askQuestion('Specify the number of test data records to generate' + chalk.dim(' (e.g., 5)'), '1'),
+        10
+      );
+      if (
+        preSanitizedCount > 0 &&
+        preSanitizedCount <= 200 &&
+        outputFormat.includes('di') &&
+        !isNaN(preSanitizedCount)
+      ) {
         count = preSanitizedCount;
         break;
-      } else if (preSanitizedCount > 0 && preSanitizedCount <= 1000 && preSanitizedCount !== undefined && !isNaN(preSanitizedCount) && !outputFormat.includes('di')) {
+      } else if (
+        preSanitizedCount > 0 &&
+        preSanitizedCount <= 1000 &&
+        preSanitizedCount !== undefined &&
+        !isNaN(preSanitizedCount) &&
+        !outputFormat.includes('di')
+      ) {
         count = preSanitizedCount;
+        break;
+      } else if (isNaN(preSanitizedCount)) {
+        count = 1;
         break;
       }
 
@@ -349,6 +329,10 @@ public async run(): Promise<SetupInitResult> {
       (obj, index) => tempObjectsToConfigure.indexOf(obj) === index
     );
 
+    if (objectsToConfigure.length === 0) {
+      objectsToConfigure.push('lead');
+    }
+
     let overwriteGlobalSettings = await askQuestion(
       'Would you like to customize settings for individual SObjects? (Y/n)',
       'n'
@@ -356,13 +340,16 @@ public async run(): Promise<SetupInitResult> {
     const sObjectSettingsMap: { [key: string]: typeSObjectSettingsMap } = {};
 
     while (overwriteGlobalSettings.toLowerCase() === 'yes' || overwriteGlobalSettings.toLowerCase() === 'y') {
-      const objInTemplateChoices = objectsToConfigure.map(obj => ({
+      const objInTemplateChoices = objectsToConfigure.map((obj) => ({
         name: obj,
         message: obj,
-        value: obj
+        value: obj,
       }));
-      
-      const sObjectName = await runSelectPrompt('Which Object(API name) would you like to override the global settings for?', objInTemplateChoices);
+
+      const sObjectName = await runSelectPrompt(
+        'Which Object(API name) would you like to override the global settings for?',
+        objInTemplateChoices
+      );
       if (!sObjectName) {
         overwriteGlobalSettings = await askQuestion(
           'Would you like to customize settings for individual SObjects? (Y/n)',
@@ -372,10 +359,6 @@ public async run(): Promise<SetupInitResult> {
           break;
         }
         continue;
-      }
-
-      if (objectsToConfigure.length === 0) {
-        objectsToConfigure.push('lead');
       }
 
       if (!objectsToConfigure.includes(sObjectName)) {
@@ -411,7 +394,7 @@ public async run(): Promise<SetupInitResult> {
         .filter(Boolean);
 
       if (fieldsToExclude.length > 0) {
-        sObjectSettingsMap[sObjectName]['fieldsToExclude'] = fieldsToExclude;
+        sObjectSettingsMap[sObjectName]['fields-to-exclude'] = fieldsToExclude;
       }
 
       const customCountInput = await askQuestion(
@@ -423,7 +406,10 @@ public async run(): Promise<SetupInitResult> {
       }
 
       // Note:languageChoices is defined above already
-      const ovrrideSelectedLangVal = await runSelectPrompt(`[${sObjectName}] Language in which test data should be generated`, languageChoices);
+      const ovrrideSelectedLangVal = await runSelectPrompt(
+        `[${sObjectName}] Language in which test data should be generated`,
+        languageChoices
+      );
       if (ovrrideSelectedLangVal) {
         sObjectSettingsMap[sObjectName].language = ovrrideSelectedLangVal;
       }
@@ -433,7 +419,7 @@ public async run(): Promise<SetupInitResult> {
       );
     }
 
-    const sObjects: Array<{ [key: string]: typeSObjectSettingsMap }> = objectsToConfigure.map((obj) => {
+    const sobjects: Array<{ [key: string]: typeSObjectSettingsMap }> = objectsToConfigure.map((obj) => {
       const temp = sObjectSettingsMap[obj];
       if (temp !== undefined) {
         return { [obj]: temp };
@@ -443,12 +429,12 @@ public async run(): Promise<SetupInitResult> {
     });
 
     const config: SetupInitResult = {
-      templateFileName,
-      namespaceToExclude,
-      outputFormat,
+      'template-file-name': templateFileName,
+      'namespace-to-exclude': namespaceToExclude,
+      'output-format': outputFormat,
       language,
       count,
-      sObjects,
+      sobjects,
     };
 
     // Write the values of the config to the file template
