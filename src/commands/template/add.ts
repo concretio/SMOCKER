@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-
+/* eslint-disable no-param-reassign */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -36,7 +36,6 @@ type templateSchema = {
   count: number;
   sObjects: SObjectItem[];
 };
-
 type tempAddFlags = {
   sObjects?: string;
   templateName: string;
@@ -46,15 +45,12 @@ type tempAddFlags = {
   outputFormat?: string;
   fieldsToExclude?: string;
 };
-
 export function updateOrInitializeConfig(
   configObject: any,
   flags: tempAddFlags,
   allowedFlags: string[],
   log: (message: string) => void
 ): void {
-  const updatedConfig = { ...configObject };
-
   const arrayFlags = ['namespaceToExclude', 'outputFormat', 'fieldsToExclude'];
 
   for (const [key, value] of Object.entries(flags)) {
@@ -71,8 +67,8 @@ export function updateOrInitializeConfig(
             throw new Error(chalk.red('Invalid output format passed. supports `csv`, `json` and `di` only'));
           } else if (
             valuesArray.includes('di') &&
-            (updatedConfig['count'] > 200 ||
-              updatedConfig['sObjects'].some(
+            (configObject['count'] > 200 ||
+              configObject['sObjects'].some(
                 (obj: { [x: string]: { count: number } }) => obj[Object.keys(obj)[0]]?.count > 200
               ))
           ) {
@@ -82,14 +78,14 @@ export function updateOrInitializeConfig(
           }
         }
 
-        if (Array.isArray(updatedConfig[key])) {
+        if (Array.isArray(configObject[key])) {
           valuesArray.forEach((item: string) => {
             if (item && !configObject[key].includes(item)) {
-              updatedConfig[key].push(item);
+              configObject[key].push(item);
             }
           });
         } else {
-          updatedConfig[key] = valuesArray;
+          configObject[key] = valuesArray;
         }
 
         log(`Updated '${key}' to: ${configObject[key].join(', ')}`);
@@ -101,16 +97,16 @@ export function updateOrInitializeConfig(
         if (
           key === 'count' &&
           ((value as number) < 1 || (value as number) > 200) &&
-          config['outputFormat'].includes('di')
+          config.outputFormat.includes('di')
         ) {
           throw new Error('Invalid input. Please enter between 1-200');
         }
 
-        updatedConfig[key] = value;
+        configObject[key] = value;
         log(`Setting '${key}' to: ${configObject[key]}`);
       }
     } else if (!['sObject', 'templateName'].includes(key)) {
-      throw new Error(`Skipped: '${key}' flag can not be passed in the current command`);
+      log(chalk.yellow(`Skipped: '${key}' flag can not be passed in the current command`));
     }
   }
 }
