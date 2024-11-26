@@ -33,7 +33,7 @@ import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages } from '@salesforce/core';
 import { Connection } from '@salesforce/core';
 import fetch from 'node-fetch';
-import { templateAddFlags } from '../template/add.js';
+import { templateAddFlags } from '../template/upsert.js';
 const fieldsConfigFile = 'generated_output.json';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'create.record');
@@ -204,9 +204,9 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
       this.saveMapToJsonFile(
         'data_gen',
         flags.templateName?.replace('.json', '') +
-        'createdRecords_' +
-        new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').split('.')[0] +
-        '.json'
+          'createdRecords_' +
+          new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').split('.')[0] +
+          '.json'
       );
     }
 
@@ -312,9 +312,9 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
   }
   /**
    * Inserts records into a specified Salesforce object using the provided connection and JSON data for first 200 records.
-   * For more than 200 record creation, use The Bulk API to processes records in batches (up to 10,000 per batch). 
+   * For more than 200 record creation, use The Bulk API to processes records in batches (up to 10,000 per batch).
    * Each batch counts as a single API call, making it efficient for handling large datasets.
-   * 
+   *
    * @param {Connection} conn - The Salesforce connection instance used to perform the insert operation.
    * @param {string} object - The API name of the Salesforce object where the records will be inserted.
    * @param {GenericRecord[]} jsonData - An array of records to be inserted, formatted as `GenericRecord` objects.
