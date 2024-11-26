@@ -126,14 +126,14 @@ function DeleteSObjectArrayValue(jsonData: templateSchema, sObjectName: string, 
         throw new Error(
           `Values '${valuesNotInJSON.join(
             ', '
-          )}' do not exist in the 'fields-to-exclude' of sobject '${sObjectName}' settings `
+          )}' do not exist in the 'fieldsToExclude' of sobject '${sObjectName}' settings `
         );
       }
       const updatedArray = existingValues.filter(
         (item) => !fieldValues.map((val) => val.toLowerCase()).includes(item.toLowerCase())
       );
       console.log(
-        `Removing '${existingValues.join(', ')}' from the 'fields-to-exclude' of sobject '${sObjectName}' settings.`
+        `Removing '${existingValues.join(', ')}' from the 'fieldsToExclude' of sobject '${sObjectName}' settings.`
       );
       concernedObject[sObjectName]['fieldsToExclude'] = updatedArray;
     } else {
@@ -229,10 +229,10 @@ export default class TemplateRemove extends SfCommand<TemplateRemoveResult> {
         jsonData = DeleteArrayValue(jsonData, 'outputFormat', parseInput(flags.outputFormat));
       }
     } else {
-      if (flags.fieldsToExclude !== undefined || flags.outputFormat !== undefined) {
+      if (flags.namespaceToExclude !== undefined || flags.outputFormat !== undefined) {
         const errorMessage = flags.namespaceToExclude
-          ? 'You cannot use global flag "namespace-to-exclude" with an SObject flag.'
-          : 'You cannot use global flag "output-format" with an SObject flag.';
+          ? 'You cannot use global flag "namespaceToExclude" with an SObject flag.'
+          : 'You cannot use global flag "outputFormat" with an SObject flag.';
 
         throw new Error(errorMessage);
       }
