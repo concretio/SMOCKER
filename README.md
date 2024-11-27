@@ -79,7 +79,7 @@ Below is an example template:
 
 ---
 
-## Workflow Commands
+## Smock-It Commands
 
 1. **Initialize Template**: This command initializes a new data generation template. It sets up the required directory structure, prompts for a valid template file name, and collects configuration details for Salesforce objects (such as fields to exclude and record counts). The configuration is validated against org before it is saved to a JSON file.
 
@@ -126,4 +126,4 @@ sf <template/data> <command> --help
 
 ## Support
 For questions, suggestions, or bug reports, please contact:  
-📧 [smock-it@concret.io](mailto:smock-it @concret.io)
+📧 [smock-it@concret.io](mailto:smock-it@concret.io)
