@@ -56,7 +56,7 @@ export default class DataGenerate extends CreateRecord {
   public static readonly flags = {
     ...CreateRecord.flags, // Use spread to include all flags from CreateRecord
     sObject: Flags.string({
-      char: 'o',
+      char: 's',
       summary: messages.getMessage('flags.sObject.summary'),
       required: false,
     }),
