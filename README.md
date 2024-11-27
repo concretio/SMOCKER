@@ -24,10 +24,6 @@ Smocker is a lightweight yet powerful Salesforce CLI plugin that allows users to
    ```bash
    sf plugins update
    ```
-3. **Uninstall**:
-   ```bash
-   sf plugins uninstall smocker-concretio
-   ```
 
 ---
 
@@ -86,26 +82,50 @@ Below is an example template:
    ```bash
    sf template init [--default]
    ```
+   Watch [this](https://www.loom.com/share/0b6d8c5285ab4478ae665e8f2f25036e?sid=622e9418-4fe3-4759-ae81-72661339f318) video for more detail.
+
 2. **Upsert Configurations**: This command allows users to add or update configuration settings in an existing data template. Users can specify options like the Salesforce object, language, record count, fields to exclude, and other settings. 
 If the object is not already present, the command will prompt users to add it.
 
    ```bash
    sf template upsert -t <templateFileName> [-s <sObject>] [-l <languageCode>] [-c <recordCount>] [-x <namespaceToExclude>] [-f <outputFormat>] [-e <fieldsToExclude>]
    ```
-3. **Remove Configurations**: This command allows users to remove specific configurations from an existing data template. It can remove settings like record count, language, namespaces, output format, and fields to exclude.However record count and language cannot be removed globally, and at least one output format is required.
+   Watch [this](https://www.loom.com/share/10d70e5e98d84114bb7edea89c80061e?sid=b4719982-4da1-4cd1-b546-50441b8d8117) video for more detail.
+   
+4. **Remove Configurations**: This command allows users to remove specific configurations from an existing data template. It can remove settings like record count, language, namespaces, output format, and fields to exclude.However record count and language cannot be removed globally, and at least one output format is required.
    ```bash
    sf template remove -t <templateFileName> [-s <sObject>] [-l <languageCode>] [-c <recordCount>] [-x <namespaceToExclude>] [-f <outputFormat>] [-e <fieldsToExclude>]
    ```
-4. **Validate Template**: This command validates a data generation template file, ensuring that it is correctly configured for Salesforce. It checks the template for correctness, connects to Salesforce (using environment variables for credentials), and logs any warnings or errors found in the template's configuration. This step ensures that all objects, fields, and settings are properly defined before use.
+   Watch [this](https://drive.google.com/file/d/11XvgL7W02JZ89V9TGeAKR39EMVpjqMmB/view) video for more detail.
+   
+6. **Validate Template**: This command validates a data generation template file, ensuring that it is correctly configured for Salesforce. It checks the template for correctness, connects to Salesforce (using environment variables for credentials), and logs any warnings or errors found in the template's configuration. This step ensures that all objects, fields, and settings are properly defined before use.
 
    ```bash
    sf template validate -t <templateFileName>
    ```
-5. **Generate Data**: The generate command reads a Salesforce data generation template and generates data based on the objects and settings defined within it. It also excludes the  fields from the data template file that have been specified, ensuring that unwanted fields are omitted from the generated records. This command is designed to facilitate the creation of tailored datasets for Salesforce objects.
+   Watch [this](https://www.loom.com/share/091b281cd024498dbe3dc56757aae9a2?sid=902eb7ce-87f7-4a6a-ade7-1291715a7aa5) video for more detail.
+   
+7. **Generate Data**: The generate command reads a Salesforce data generation template and generates data based on the objects and settings defined within it. It also excludes the  fields from the data template file that have been specified, ensuring that unwanted fields are omitted from the generated records. This command is designed to facilitate the creation of tailored datasets for Salesforce objects.
 
    ```bash
    sf data generate -t <templateFileName>
    ```
+   Watch [this](https://www.loom.com/share/e40f8ed647c9495d9c00814189b44c5f?sid=d4982dd9-552b-4284-808e-a924fb36ad89) video for more detail.
+  
+---
+
+## Flag Description
+
+| Flag                 | Short Hand | Flag Name             | Description                                                                                                                                 |
+|----------------------|------------|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| `--default`          |            | Default Template      | Creates a default template.                                                                                                                 |
+| `--templateName`     | `-t`       | Template Name         | Specify the name of the data template to be utilized. The template must exist in the `data_gen/templates` directory.                        |
+| `--count`            | `-c`       | Count                | Set the number of records to generate. If `--sObject` or `-o` is provided, this will only update or remove the count for that object.       |
+| `--namespaceToExclude` | `-x`    | Namespace to Exclude | Exclude specific namespaces from generating record data for namespace fields. Multiple namespaces can be separated by commas.              |
+| `--language`         | `-l`       | Language             | Select the language (`en` or `jp`). When `--sObject` or `-o` is specified, this updates or removes the language setting for that object.    |
+| `--outputFormat`     | `-f`       | Output Format        | Define the output format(s) for generated data (e.g., CSV, JSON, DI). Multiple formats can be specified, separated by commas.               |
+| `--sObject`          | `-s`       | Specific Object      | Target a specific object and override its existing settings. If not found in the template, an "add object" prompt will appear.             |
+| `--fieldsToExclude`  | `-e`       | Fields to Exclude    | Exclude specific fields from test data generation for a given object. Applies only at the object level.                                    |
 
 ---
 
