@@ -94,8 +94,7 @@ export function updateOrInitializeConfig(
 
         if (
           key === 'count' &&
-          ((value as number) < 1 || (value as number) > 200) &&
-          config.outputFormat.includes('di')
+          ((value as number) < 1 || ((value as number) > 200 && config.outputFormat.includes('di')))
         ) {
           throw new Error(
             'Invalid input. Please enter a Value between 1-200 for DI and for CSV and JSON value greater than 0'

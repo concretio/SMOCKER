@@ -35,7 +35,7 @@ function deleteSObjectField(jsonData: templateSchema, sObjectName: string, field
 
   if (sObject?.[sObjectName]) {
     if (Object.prototype.hasOwnProperty.call(sObject[sObjectName], fieldName)) {
-      console.log(`Removing ${fieldName} from the sobject ${sObjectName} settings.`);
+      console.log(`Removing '${fieldName}' from the sobject ${sObjectName} settings.`);
       delete sObject[sObjectName][fieldName as keyof typeSObjectSettingsMap];
     } else {
       throw new Error(`The specified flag '${fieldName}' does not exist in the '${sObjectName}' sObject.`);
@@ -133,7 +133,7 @@ function DeleteSObjectArrayValue(jsonData: templateSchema, sObjectName: string, 
         (item) => !fieldValues.map((val) => val.toLowerCase()).includes(item.toLowerCase())
       );
       console.log(
-        `Removing '${existingValues.join(', ')}' from the 'fieldsToExclude' of sobject '${sObjectName}' settings.`
+        `Removing '${fieldValues.join(', ')}' from the 'fieldsToExclude' of sobject '${sObjectName}' settings.`
       );
       concernedObject[sObjectName]['fieldsToExclude'] = updatedArray;
     } else {
@@ -239,13 +239,13 @@ export default class TemplateRemove extends SfCommand<TemplateRemoveResult> {
 
       const sObject = flags.sObject;
       if (flags.count) {
-        jsonData = deleteSObjectField(jsonData, sObject, 'count');
+        jsonData = deleteSObjectField(jsonData, sObject.toLowerCase(), 'count');
       }
       if (flags.language) {
-        jsonData = deleteSObjectField(jsonData, sObject, 'language');
+        jsonData = deleteSObjectField(jsonData, sObject.toLowerCase(), 'language');
       }
       if (flags.fieldsToExclude) {
-        jsonData = DeleteSObjectArrayValue(jsonData, sObject, parseInput(flags.fieldsToExclude));
+        jsonData = DeleteSObjectArrayValue(jsonData, sObject.toLowerCase(), parseInput(flags.fieldsToExclude));
       }
       if (!flags.count && !flags.language && !flags.fieldsToExclude) {
         const sObjectNames = parseInput([sObject]);
