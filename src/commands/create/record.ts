@@ -188,7 +188,11 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
         });
         this.log(`Records inserted for ${object}`);
         if (errorSet.size > 0) {
-          this.log(`\nFailed to insert ${errorSet.size} record(s) for '${object}' object with following error(s):`);
+          this.log(
+            `\nFailed to insert ${
+              insertResult.length - insertedIds.length
+            } record(s) for '${object}' object with following error(s):`
+          );
           errorSet.forEach((error) => this.log(`- ${error}`));
         }
         this.updateCreatedRecordIds(object, insertResult);
