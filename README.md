@@ -4,7 +4,7 @@
 **A Salesforce CLI Plugin to Simplify Synthetic Data Generation**
 
 ## Overview
-Smocker is a lightweight yet powerful Salesforce CLI plugin that allows users to generate synthetic data quickly and easily. This tool is specifically designed to streamline the creation of realistic, customizable test data templates while ensuring compatibility with complex Salesforce schemas and industry-specific requirements.
+Smocker is a lightweight yet powerful Salesforce CLI plugin that allows users to generate synthetic data quickly and easily. This tool is specifically designed to streamline the creation of realistic, customizable test data while ensuring compatibility with complex Salesforce schemas and industry-specific requirements.
 
 ---
 ## Key Challenges solved
