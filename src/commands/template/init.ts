@@ -22,9 +22,11 @@ export type SetupInitResult = {
 };
 
 type typeSObjectSettingsMap = {
-  fieldsToExclude?: string[];
   count?: number;
   language?: string;
+  fieldsToExclude?: string[];
+  fieldsToConsider?: { [key: string]: string[] };
+  'pick-left-fields'?: boolean | string;
 };
 
 /* ------------------- Functions ---------------------- */
@@ -401,8 +403,25 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       }
       sObjectSettingsMap[sObjectName] = {};
 
+      // Note:languageChoices is defined above already
+      const ovrrideSelectedLangVal = await runSelectPrompt(
+        `[${sObjectName}] Language in which test data should be generated`,
+        languageChoices
+      );
+      if (ovrrideSelectedLangVal) {
+        sObjectSettingsMap[sObjectName].language = ovrrideSelectedLangVal;
+      }
+
+      const customCountInput = await askQuestion(
+        chalk.white.bold(`[${sObjectName}]`) + ' Count for generating records'
+      );
+      const overrideCount = customCountInput ? parseInt(customCountInput, 10) : null;
+      if (overrideCount !== null) {
+        sObjectSettingsMap[sObjectName].count = overrideCount;
+      }
+
       const fieldsToExcludeInput = await askQuestion(
-        chalk.white.bold(`[${sObjectName}]`) +
+        chalk.white.bold(`[${sObjectName} - fields to exclude]`) +
           ' Provide fields(API names) to exclude ' +
           chalk.dim('(comma-separated)'),
         ''
@@ -416,22 +435,46 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         sObjectSettingsMap[sObjectName]['fieldsToExclude'] = fieldsToExclude;
       }
 
-      const customCountInput = await askQuestion(
-        chalk.white.bold(`[${sObjectName}]`) + ' Count for generating records'
+      const fieldsToConsiderInput = await askQuestion(
+        chalk.white.bold(`[${sObjectName} - fields to consider]`) +
+          ' Provide field names to be considers for generating data. (E.g. Phone: ["909090", "6788489"], Fax )',
+        ''
       );
-      const overrideCount = customCountInput ? parseInt(customCountInput, 10) : null;
-      if (overrideCount !== null) {
-        sObjectSettingsMap[sObjectName].count = overrideCount;
+      const fieldsToConsider: { [key: string]: string[] } = {};
+
+      fieldsToConsiderInput
+        .toLowerCase()
+        .split(/[\s,]+/)
+        .map((entry) => {
+          const [key, value] = entry.split(':');
+          console.log(key, value);
+          if (key) {
+            fieldsToConsider[key.trim()] = value
+              ? value
+                  .replace(/[^\w\s,]/g, '')
+                  .split(',')
+                  .map((v) => v.trim())
+              : [];
+          }
+        });
+
+      if (Object.keys(fieldsToConsider).length > 0) {
+        sObjectSettingsMap[sObjectName]['fieldsToConsider'] = fieldsToConsider;
       }
 
-      // Note:languageChoices is defined above already
-      const ovrrideSelectedLangVal = await runSelectPrompt(
-        `[${sObjectName}] Language in which test data should be generated`,
-        languageChoices
+      const pickLeftFields = [
+        { name: 'true', message: 'true', value: 'true', hint: '' },
+        { name: 'false', message: 'false', value: 'false', hint: '' },
+      ];
+      const pickLeftFieldsInput = await runSelectPrompt(
+        `[${sObjectName} - pick-left-fields] Want to generate data for fields neither in 'fields to consider' nor in 'fields to exclude'`,
+        pickLeftFields
       );
-      if (ovrrideSelectedLangVal) {
-        sObjectSettingsMap[sObjectName].language = ovrrideSelectedLangVal;
+
+      if (pickLeftFieldsInput) {
+        sObjectSettingsMap[sObjectName]['pick-left-fields'] = pickLeftFieldsInput;
       }
+
       overwriteGlobalSettings = await askQuestion(
         'Do you wish to overwrite global settings for another Object(API name)? (Y/n)',
         'n'
