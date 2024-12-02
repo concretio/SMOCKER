@@ -33,7 +33,7 @@ import { Messages, Connection } from '@salesforce/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import { updateOrInitializeConfig } from '../template/add.js';
-import { getConnectionWithSalesforce } from '../template/validate.js';
+import { connectToSalesforceOrg } from '../template/validate.js';
 import CreateRecord from '../create/record.js';
 
 Messages.importMessagesDirectory(dirname(fileURLToPath(import.meta.url)));
@@ -64,6 +64,12 @@ export default class DataGenerate extends CreateRecord {
       char: 't',
       summary: messages.getMessage('flags.templateName.summary'),
       description: messages.getMessage('flags.templateName.description'),
+      required: true,
+    }),
+    alias: Flags.string({
+      char: 'a',
+      summary: messages.getMessage('flags.alias.summary'),
+      description: messages.getMessage('flags.alias.description'),
       required: true,
     }),
   };
@@ -268,8 +274,8 @@ export default class DataGenerate extends CreateRecord {
         objectsToProcess = [existingObjectConfig];
       }
     }
-
-    const conn = await getConnectionWithSalesforce();
+    const aliasOrUsername = flags.alias.toLowerCase();
+    const conn = await connectToSalesforceOrg(aliasOrUsername);
 
     const outputData: any[] = [];
 

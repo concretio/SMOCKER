@@ -12,34 +12,14 @@ import Spinner from 'cli-spinners';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import Enquirer from 'enquirer';
-import { getConnectionWithSalesforce, validateConfigJson } from '../template/validate.js';
+import {  validateConfigJson , connectToSalesforceOrg } from '../template/validate.js';
 import { SetupInitResult, typeSObjectSettingsMap } from '../../utils/types.js';
-import { languageChoices , outputChoices } from '../../utils/constants.js';
+import { languageChoices, outputChoices } from '../../utils/constants.js';
 // Import messages from the specified directory
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.init');
 
-/* ------------------- Types ---------------------- */
-// export type SetupInitResult = {
-//   'template-file-name': string;
-//   'namespace-to-exclude': string[];
-//   'output-format': string[];
-//   language: string;
-//   count: number;
-//   sobjects: Array<{ [key: string]: typeSObjectSettingsMap }>;
-// };
 
-// type typeSObjectSettingsMap = {
-//   'fields-to-exclude'?: string[];
-//   count?: number;
-//   language?: string;
-// };
-
-/* ------------------- Functions ---------------------- */
-
-/*
- Create data_gen structure on current CLI path.
-*/
 function handleDirStruct(): string {
   const cwd = process.cwd();
   const dataGenDirPath = path.join(cwd, 'data_gen');
@@ -455,20 +435,20 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
 
     // Write the values of the config to the file template
     fs.writeFileSync(filePath, JSON.stringify(config, null, 2), 'utf8');
+    // if user wants to validate the template, we'll ask one more question related to username or alias, ans then authenticate the org
     const wantToValidate = await askQuestion(
       chalk.bold('Do you want to validate the added sObjects and their fields from your org?(Y/n)'),
       'n'
     );
     if (wantToValidate.toLowerCase() === 'yes' || wantToValidate.toLowerCase() === 'y') {
-      const connection = await getConnectionWithSalesforce();
-      console.log(chalk.cyan('Success: SF Connection established.'));
-      await validateConfigJson(connection, filePath);
+      const userAliasorUsernName = await askQuestion(
+        chalk.bold('Please enter the alias or username of the Salesforce org you want to connect to:'),
+      );
+      const conn = await  connectToSalesforceOrg(userAliasorUsernName.toLowerCase())
+      await validateConfigJson(conn, filePath);
     }
 
     console.log(chalk.green(`Success: ${templateFileName} created at ${filePath}`));
     return config;
   }
-  // log(arg0: string) {
-  //   throw new Error('Method not implemented.');
-  // }
 }

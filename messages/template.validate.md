@@ -10,6 +10,13 @@ For creating a default template.
 
 Creates a default template can be used for initial 'json' adaption.
 
+# flags.alias.summary
+
+For creating a default template.
+
+# flags.alias.description
+
+Creates a default template can be used for initial 'json' adaption.
 # Examples
 
 - `sf template validate --template-name MyTemplate`
