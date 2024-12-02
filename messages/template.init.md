@@ -13,5 +13,3 @@ Creates a default template can be used for initial 'json' adaption.
 # Examples
 
 - '$ sf template init --default'
-
-

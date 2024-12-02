@@ -1,39 +1,17 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-/* eslint-disable complexity */
-/* eslint-disable no-console */
-/* eslint-disable no-await-in-loop */
-
 import * as readline from 'node:readline';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import chalk from 'chalk';
-import { loading } from 'cli-loading-animation';
-import Spinner from 'cli-spinners';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import Enquirer from 'enquirer';
 import { getConnectionWithSalesforce, validateConfigJson } from '../template/validate.js';
 import { SetupInitResult, typeSObjectSettingsMap } from '../../utils/types.js';
-import { languageChoices , outputChoices } from '../../utils/constants.js';
+import { languageChoices, outputChoices } from '../../utils/constants.js';
+
 // Import messages from the specified directory
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.init');
-
-/* ------------------- Types ---------------------- */
-// export type SetupInitResult = {
-//   'template-file-name': string;
-//   'namespace-to-exclude': string[];
-//   'output-format': string[];
-//   language: string;
-//   count: number;
-//   sobjects: Array<{ [key: string]: typeSObjectSettingsMap }>;
-// };
-
-// type typeSObjectSettingsMap = {
-//   'fields-to-exclude'?: string[];
-//   count?: number;
-//   language?: string;
-// };
 
 /* ------------------- Functions ---------------------- */
 
@@ -64,11 +42,11 @@ async function runMultiSelectPrompt(): Promise<string[]> {
       choices: string[];
     };
 
-    // const outputChoices = [
-    //   { name: 'DI', message: 'DI', value: 'di', hint: 'Create records into org (limit- upto 200)' },
-    //   { name: 'JSON', message: 'JSON', value: 'json' },
-    //   { name: 'CSV', message: 'CSV', value: 'csv' },
-    // ];
+    // Listen for Ctrl+C and terminate the CLI
+    process.on('SIGINT', () => {
+      console.log('\nCLI terminated by the user.');
+      process.exit(0);
+    });
 
     const answers = await Enquirer.prompt<Answers>({
       type: 'multiselect',
@@ -79,6 +57,11 @@ async function runMultiSelectPrompt(): Promise<string[]> {
 
     return answers.choices;
   } catch (error) {
+    if (error === '') {
+      // Handle Ctrl+C gracefully
+      console.log('\nCLI terminated by the user.');
+      process.exit(0);
+    }
     console.error('Error:', error);
     return [];
   }
@@ -92,7 +75,11 @@ async function runSelectPrompt(
     type Answers = {
       choices: string;
     };
-
+    // Listen for Ctrl+C and terminate the CLI
+    process.on('SIGINT', () => {
+      console.log('\nCLI terminated by the user.');
+      process.exit(0);
+    });
     const answers = await Enquirer.prompt<Answers>({
       type: 'select',
       name: 'choices',
@@ -102,6 +89,11 @@ async function runSelectPrompt(
 
     return answers.choices;
   } catch (error) {
+    if (error === '') {
+      // Handle Ctrl+C gracefully
+      console.log('\nCLI terminated by the user.');
+      process.exit(0);
+    }
     console.error('Error:', error);
     return '';
   }
@@ -171,17 +163,9 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
 
   public async run(): Promise<SetupInitResult> {
     const { flags } = await this.parse(SetupInit);
-    const { start, stop } = loading('Establishing Connection with Org', {
-      clearOnEnd: true,
-      spinner: Spinner.line2,
-    });
 
-    start();
     const dirname = handleDirStruct();
     const templatePath = path.join(dirname, 'templates');
-    // const connection = await getConnectionWithSalesforce();
-    stop();
-    // console.log(chalk.cyan('Success: SF Connection established.'));
 
     console.log(chalk.bold('====================================='));
     console.log(chalk.bold('🚀 Creating Data Template File 🚀'));
@@ -200,17 +184,17 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         {
           "_comment_importantNote": "We highly recommend removing all the comments for a cleaner exeperience once you are comfortable with this json format",
 
-          "_comment_template-file-name": "The filename of the data template.",
+          "_comment_templateFileName": "The filename of the data template.",
 
-          "template-file-name": "${path.basename(defaultTemplatePath)}",
+          "templateFileName": "${path.basename(defaultTemplatePath)}",
           
-          "_comment_namespace-to-exclude": "Fields from these namespace(s) will be excluded while generating test data",
-          "_example_namespace-to-exclude": "namespace-to-exclude:['namespace1','namespace2']",
-          "namespace-to-exclude": [],
+          "_comment_namespaceToExclude": "Fields from these namespace(s) will be excluded while generating test data",
+          "_example_namespaceToExclude": "namespaceToExclude:['namespace1','namespace2']",
+          "namespaceToExclude": [],
           
-          "_comment_output-format": "Desired output format(s) for the storing the generated test data; Only 3 values are valid- csv,json and di(i.e. for direct insertion of upto 200 records into the connected org)",
-          "_example_output-format": "output-format:['csv','json','di']",
-          "output-format": ["csv"],
+          "_comment_outputFormat": "Desired output format(s) for the storing the generated test data; Only 3 values are valid- csv,json and di(i.e. for direct insertion of upto 200 records into the connected org)",
+          "_example_outputFormat": "outputFormat:['csv','json','di']",
+          "outputFormat": ["csv"],
           
           "_comment_language": "Specifies the default language for data generation; applies to all sObjects unless overridden (e.g., 'en' for English).",
           "language": "en",
@@ -218,15 +202,15 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
           "_comment_count": "Specifies the default count for data generation; applies to all sObjects unless overridden",
           "count": 1,
           
-          "_comment_sobjects": "Lists Salesforce objects (API names) to generate test data for.",
-          "sobjects": [
+          "_comment_sObjects": "Lists Salesforce objects (API names) to generate test data for.",
+          "sObjects": [
             {"account": {}},
             {"contact": {}},
             {
               "lead": {
                 "_comment_sobjectLevel": "These settings are object specific, so here these are set for lead object only",
-                "_comment_fields-to-exclude": "Lists fields to exclude from generating test data for the Lead object.",
-                "fields-to-exclude": ["fax", "website"],
+                "_comment_fieldsToExclude": "Lists fields to exclude from generating test data for the Lead object.",
+                "fieldsToExclude": ["fax", "website"],
 
                 "_comment_language": "Specifies language for generating test data for the Lead object.",
                 "language": "en",
@@ -287,11 +271,6 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       }
     }
 
-    /* generate data in language */
-    // const languageChoices = [
-    //   { name: 'en', message: 'en', value: 'en', hint: 'English (US)' },
-    //   { name: 'jp', message: 'jp', value: 'jp', hint: 'Japanese' },
-    // ];
     const language = await runSelectPrompt('In which language would you like to generate test data?', languageChoices);
 
     /* record count */
@@ -410,7 +389,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         .filter(Boolean);
 
       if (fieldsToExclude.length > 0) {
-        sObjectSettingsMap[sObjectName]['fields-to-exclude'] = fieldsToExclude;
+        sObjectSettingsMap[sObjectName]['fieldsToExclude'] = fieldsToExclude;
       }
 
       const customCountInput = await askQuestion(
@@ -435,7 +414,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       );
     }
 
-    const sobjects: Array<{ [key: string]: typeSObjectSettingsMap }> = objectsToConfigure.map((obj) => {
+    const sObjects: Array<{ [key: string]: typeSObjectSettingsMap }> = objectsToConfigure.map((obj) => {
       const temp = sObjectSettingsMap[obj];
       if (temp !== undefined) {
         return { [obj]: temp };
@@ -443,14 +422,13 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         return { [obj]: {} };
       }
     });
-
     const config: SetupInitResult = {
-      'template-file-name': templateFileName,
-      'namespace-to-exclude': namespaceToExclude,
-      'output-format': outputFormat,
+      templateFileName,
+      namespaceToExclude,
+      outputFormat,
       language,
       count,
-      sobjects,
+      sObjects,
     };
 
     // Write the values of the config to the file template

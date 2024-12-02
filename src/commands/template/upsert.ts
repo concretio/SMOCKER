@@ -1,8 +1,4 @@
-/* eslint-disable import/order */
 /* eslint-disable no-param-reassign */
-/* eslint-disable sf-plugin/dash-o */
-
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -13,42 +9,19 @@ import path from 'node:path';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import chalk from 'chalk';
-import { askQuestion } from './init.js';
-// import { validateConfigJson, getConnectionWithSalesforce } from '../template/validate.js';
-import { typeSObjectSettingsMap, SObjectItem, templateSchema } from '../../utils/types.js';
+import { typeSObjectSettingsMap, SObjectItem, templateSchema, tempAddFlags } from '../../utils/types.js';
 import { arrayFlags } from '../../utils/constants.js';
+import { askQuestion } from './init.js';
+
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
-const messages = Messages.loadMessages('smocker-concretio', 'template.add');
-
-// export type TemplateAddResult = {
-//   path: string;
-// };
-
-// type typeSObjectSettingsMap = {
-//   'fields-to-exclude'?: string[];
-//   count?: number;
-//   language?: string;
-// };
-
-// type SObjectItem = { [key: string]: typeSObjectSettingsMap };
-
-// type templateSchema = {
-//   'template-file-name': string;
-//   'namespace-to-exclude': string[];
-//   'output-format': string[];
-//   language: string;
-//   count: number;
-//   sobjects: SObjectItem[];
-// };
+const messages = Messages.loadMessages('smocker-concretio', 'template.upsert');
 
 export function updateOrInitializeConfig(
   configObject: any,
-  flags: any,
+  flags: tempAddFlags,
   allowedFlags: string[],
   log: (message: string) => void
 ): void {
-  // const arrayFlags = ['namespace-to-exclude', 'output-format', 'fields-to-exclude'];
-
   for (const [key, value] of Object.entries(flags)) {
     if (allowedFlags.includes(key) && value !== undefined) {
       // Checking if values need to be converted to an string[]
@@ -58,13 +31,13 @@ export function updateOrInitializeConfig(
           .split(/[\s,]+/)
           .filter(Boolean);
         // Push to array if it exists else assign to new
-        if (key === 'output-format') {
+        if (key === 'outputFormat') {
           if (!valuesArray.every((format) => ['csv', 'json', 'di'].includes(format))) {
             throw new Error(chalk.red('Invalid output format passed. supports `csv`, `json` and `di` only'));
           } else if (
             valuesArray.includes('di') &&
             (configObject['count'] > 200 ||
-              configObject['sobjects'].some(
+              configObject['sObjects'].some(
                 (obj: { [x: string]: { count: number } }) => obj[Object.keys(obj)[0]]?.count > 200
               ))
           ) {
@@ -92,31 +65,32 @@ export function updateOrInitializeConfig(
 
         if (
           key === 'count' &&
-          ((value as number) < 1 || (value as number) > 200) &&
-          config['output-format'].includes('di')
+          ((value as number) < 1 || ((value as number) > 200 && config.outputFormat.includes('di')))
         ) {
-          throw new Error('Invalid input. Please enter between 1-200');
+          throw new Error(
+            'Invalid input. Please enter a Value between 1-200 for DI and for CSV and JSON value greater than 0'
+          );
         }
 
         configObject[key] = value;
         log(`Setting '${key}' to: ${configObject[key]}`);
       }
-    } else if (!['sobject', 'template-name'].includes(key)) {
-      throw new Error(`Skipped: '${key}' flag can not be passed in the current command`);
+    } else if (!['sObject', 'templateName'].includes(key)) {
+      log(chalk.yellow(`Skipped: '${key}' flag can not be passed in the current command`));
     }
   }
 }
 export const templateAddFlags = {
-  sobject: Flags.string({
-    char: 'o',
-    summary: messages.getMessage('flags.sobject.summary'),
-    description: messages.getMessage('flags.sobject.description'),
+  sObject: Flags.string({
+    char: 's',
+    summary: messages.getMessage('flags.sObject.summary'),
+    description: messages.getMessage('flags.sObject.description'),
     required: false,
   }),
-  'template-name': Flags.string({
+  templateName: Flags.string({
     char: 't',
-    summary: messages.getMessage('flags.template-name.summary'),
-    description: messages.getMessage('flags.template-name.description'),
+    summary: messages.getMessage('flags.templateName.summary'),
+    description: messages.getMessage('flags.templateName.description'),
     required: true,
   }),
   language: Flags.string({
@@ -131,22 +105,22 @@ export const templateAddFlags = {
     description: messages.getMessage('flags.count.description'),
     required: false,
   }),
-  'namespace-to-exclude': Flags.string({
+  namespaceToExclude: Flags.string({
     char: 'x',
-    summary: messages.getMessage('flags.namespace-to-exclude.summary'),
-    description: messages.getMessage('flags.namespace-to-exclude.description'),
+    summary: messages.getMessage('flags.namespaceToExclude.summary'),
+    description: messages.getMessage('flags.namespaceToExclude.description'),
     required: false,
   }),
-  'output-format': Flags.string({
+  outputFormat: Flags.string({
     char: 'f',
-    summary: messages.getMessage('flags.output-format.summary'),
-    description: messages.getMessage('flags.output-format.description'),
+    summary: messages.getMessage('flags.outputFormat.summary'),
+    description: messages.getMessage('flags.outputFormat.description'),
     required: false,
   }),
-  'fields-to-exclude': Flags.string({
+  fieldsToExclude: Flags.string({
     char: 'e',
-    summary: messages.getMessage('flags.fields-to-exclude.summary'),
-    description: messages.getMessage('flags.fields-to-exclude.description'),
+    summary: messages.getMessage('flags.fieldsToExclude.summary'),
+    description: messages.getMessage('flags.fieldsToExclude.description'),
     required: false,
   }),
 };
@@ -158,18 +132,18 @@ export default class TemplateAdd extends SfCommand<void> {
   public static readonly examples: string[] = [messages.getMessage('Examples')];
 
   public static readonly flags = templateAddFlags;
-  
+
   public async run(): Promise<void> {
     const { flags } = await this.parse(TemplateAdd);
 
-    let filename = flags['template-name'];
+    let filename = flags.templateName;
     if (!filename) {
       this.error('Error: You must specify a filename using the --templateName flag.');
     } else if (!filename.endsWith('.json')) {
       filename += '.json';
     }
 
-    const objectName = flags.sobject ? flags.sobject.toLowerCase() : undefined;
+    const objectName = flags.sObject ? flags.sObject.toLowerCase() : undefined;
 
     try {
       // Variable Declarations and validatons
@@ -188,40 +162,39 @@ export default class TemplateAdd extends SfCommand<void> {
 
       config = JSON.parse(fs.readFileSync(configFilePath, 'utf8')) as templateSchema;
       let allowedFlags = [];
-      
 
       // Checking if Object Flag is passed or not
 
       if (objectName) {
         this.log(chalk.magenta.bold(`Working on the object level settings for ${objectName}`));
-        if (!Array.isArray(config.sobjects)) {
-          config.sobjects = [];
+        if (!Array.isArray(config.sObjects)) {
+          config.sObjects = [];
         }
-        let objectConfig = config.sobjects.find((obj: SObjectItem): boolean => Object.keys(obj)[0] === objectName) as SObjectItem;
+        let objectConfig = config.sObjects.find(
+          (obj: SObjectItem): boolean => Object.keys(obj)[0] === objectName
+        ) as SObjectItem;
         if (!objectConfig) {
           const addToTemplate = await askQuestion(
             chalk.yellow(`'${objectName}' does not exists in data template! Do you want to add?`) + chalk.dim('(Y/n)')
           );
           if (addToTemplate.toLowerCase() === 'yes' || addToTemplate.toLowerCase() === 'y') {
             objectConfig = { [objectName]: {} };
-            config.sobjects.push(objectConfig);
+            config.sObjects.push(objectConfig);
           } else {
             return;
           }
         }
         const configFileForSobject: typeSObjectSettingsMap = objectConfig[objectName];
-        allowedFlags = ['fields-to-exclude', 'language', 'count'];
+        allowedFlags = ['fieldsToExclude', 'language', 'count'];
         updateOrInitializeConfig(configFileForSobject, flags, allowedFlags, this.log.bind(this));
       } else {
         const configFile: templateSchema = config;
-        allowedFlags = ['output-format', 'namespace-to-exclude', 'language', 'count'];
+        allowedFlags = ['outputFormat', 'namespaceToExclude', 'language', 'count'];
         updateOrInitializeConfig(configFile, flags, allowedFlags, this.log.bind(this));
       }
 
       // updateOrInitializeConfig(configFile, flags, allowedFlags, this.log.bind(this));
       fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8');
-      // const connection = await getConnectionWithSalesforce();
-      // await validateConfigJson(connection, configFilePath);
       this.log(chalk.green(`Success: Configuration updated in ${configFilePath}`));
     } catch (error) {
       this.error(`Process halted: ${(error as Error).message}`);

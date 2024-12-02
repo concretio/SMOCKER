@@ -32,7 +32,7 @@ import { Flags } from '@salesforce/sf-plugins-core';
 import { Messages, Connection } from '@salesforce/core';
 import * as fs from 'fs';
 import * as path from 'path';
-import { updateOrInitializeConfig } from '../template/add.js';
+import { updateOrInitializeConfig } from '../template/upsert.js';
 import { getConnectionWithSalesforce } from '../template/validate.js';
 import CreateRecord from '../create/record.js';
 
@@ -56,7 +56,7 @@ export default class DataGenerate extends CreateRecord {
   public static readonly flags = {
     ...CreateRecord.flags, // Use spread to include all flags from CreateRecord
     sObject: Flags.string({
-      char: 'o',
+      char: 's',
       summary: messages.getMessage('flags.sObject.summary'),
       required: false,
     }),
