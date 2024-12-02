@@ -437,30 +437,32 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
 
       const fieldsToConsiderInput = await askQuestion(
         chalk.white.bold(`[${sObjectName} - fields to consider]`) +
-          ' Provide field names to be considers for generating data. (E.g. Phone: ["909090", "6788489"], Fax )',
+          ' Provide field names to be considered for generating data. (E.g. Phone: ["909090", "6788489"], Fax )',
         ''
       );
+      console.log('fieldsToConsiderInput=====>', fieldsToConsiderInput);
+
       const fieldsToConsider: { [key: string]: string[] } = {};
 
-      fieldsToConsiderInput
-        .toLowerCase()
-        .split(/[\s,]+/)
-        .map((entry) => {
-          const [key, value] = entry.split(':');
-          console.log(key, value);
-          if (key) {
-            fieldsToConsider[key.trim()] = value
-              ? value
-                  .replace(/[^\w\s,]/g, '')
-                  .split(',')
-                  .map((v) => v.trim())
-              : [];
-          }
-        });
-
+      const regex = /(\w+):\s*(\[[^\]]*\])|(\w+)/g;
+      let match;
+      while ((match = regex.exec(fieldsToConsiderInput)) !== null) {
+        const key = match[1] || match[3];
+        const value = match[2];
+        if (key && value) {
+          fieldsToConsider[key] = value
+            .slice(1, -1)
+            .split(',')
+            .map((v) => v.trim().replace(/^"|"$/g, ''));
+        } else {
+          fieldsToConsider[key] = [];
+        }
+      }
       if (Object.keys(fieldsToConsider).length > 0) {
         sObjectSettingsMap[sObjectName]['fieldsToConsider'] = fieldsToConsider;
       }
+
+      console.log(fieldsToConsider);
 
       const pickLeftFields = [
         { name: 'true', message: 'true', value: 'true', hint: '' },
