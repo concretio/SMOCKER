@@ -417,20 +417,23 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       }
       // object record count
       let overrideCount = null;
-
-      while (overrideCount === null || overrideCount > 1000 || overrideCount <= 0 || isNaN(overrideCount)) {
+      while (overrideCount === null) {
         const customCountInput = await askQuestion(
           chalk.white.bold(`[${sObjectName}]`) + ' Count for generating records'
         );
-        overrideCount = customCountInput ? parseInt(customCountInput, 10) : null;
+        if (!customCountInput) {
+          break;
+        }
+        overrideCount = parseInt(customCountInput, 10);
 
-        if (overrideCount === null || overrideCount > 1000 || overrideCount <= 0 || isNaN(overrideCount)) {
-          console.log(chalk.yellow('Invalid input. Please enter a number between 1 and 1000.'));
+        if (overrideCount > 0 && overrideCount <= 1000 && !isNaN(overrideCount)) {
+          sObjectSettingsMap[sObjectName].count = overrideCount;
+          break;
+        } else {
+          console.log(chalk.yellow('Invalid input. Please enter a number between 1 and 1000'));
+          overrideCount = null;
         }
       }
-
-      sObjectSettingsMap[sObjectName].count = overrideCount;
-
       // Note:languageChoices is defined above already
       const ovrrideSelectedLangVal = await runSelectPrompt(
         `[${sObjectName}] Language in which test data should be generated`,
