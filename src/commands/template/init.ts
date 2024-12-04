@@ -436,24 +436,11 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       }
       /* ---------------------New features added------------------------------*/
 
-      // let showNote = true; // Boolean flag to control the note's display
-
-      // if (showNote) {
-      //   console.log(
-      //     chalk.blue.bold(
-      //       `Note: All the dependent picklist fields should be defined in order. You can add them in the sObject [${sObjectName}]. Eg: (dp-Year:2024, dp-Month:2)`
-      //     )
-      //   );
-      // }
-
-      const showDependentPicklistNote = (): void => {
-        console.log(
-          chalk.blue.bold(
-            'Note: In case of dependent picklist fields, value should be defined in order.Eg: (dp-Year:[2024], dp-Month:[2])'
-          )
-        );
-      };
-      showDependentPicklistNote();
+      console.log(
+        chalk.blue.bold(
+          'Note: In case of dependent picklist fields, value should be defined in order.Eg: (dp-Year:[2024], dp-Month:[2])'
+        )
+      );
 
       const fieldsToConsiderInput = await askQuestion(
         chalk.white.bold(`[${sObjectName} - fields to consider]`) +
@@ -508,9 +495,6 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       if (Object.keys(fieldsToConsider).length > 0) {
         sObjectSettingsMap[sObjectName]['fieldsToConsider'] = fieldsToConsider;
       }
-
-      // console.log(fieldsToConsider);
-
       const pickLeftFields = [
         { name: 'true', message: 'true', value: 'true', hint: '' },
         { name: 'false', message: 'false', value: 'false', hint: '' },
@@ -571,7 +555,4 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
     console.log(chalk.green(`Success: ${templateFileName} created at ${filePath}`));
     return config;
   }
-  // log(arg0: string) {
-  //   throw new Error('Method not implemented.');
-  // }
 }
