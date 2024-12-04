@@ -449,7 +449,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       const showDependentPicklistNote = (): void => {
         console.log(
           chalk.blue.bold(
-            `Note: All the dependent picklist fields should be defined in order. You can add them in the sObject [${sObjectName}]. Eg: (dp-Year:2024, dp-Month:2)`
+            'Note: In case of dependent picklist fields, value should be defined in order.Eg: (dp-Year:[2024], dp-Month:[2])'
           )
         );
       };
@@ -463,7 +463,6 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
 
       /* ---------------------New Features-------------------------------------*/
 
-      // const fieldsToConsider: { [key: string]: string[] } = {};
       const fieldsToConsider: { [key: string]: string[] | string } = {};
 
       // const regex = /(\w+):\s*(\[[^\]]*\])|(\w+)/g;
@@ -478,7 +477,6 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
             .slice(1, -1)
             .split(',')
             .map((v) => v.trim());
-          console.log('fieldValues', fieldValues);
           fieldsToConsider[key] = fieldValues;
         } else {
           fieldsToConsider[key] = [];
@@ -486,11 +484,10 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
 
         if (key.startsWith('dp-')) {
           if (value) {
-            const fieldValuess = value.slice(1, -1).trim();
-            // console.log('fieldValuess', fieldValuess);
-            fieldsToConsider[key] = fieldValuess;
+            const dpfieldValue = value.slice(1, -1).trim();
+            fieldsToConsider[key] = dpfieldValue;
           } else {
-            fieldsToConsider[key] = [];
+            fieldsToConsider[key] = '';
           }
         }
       }
