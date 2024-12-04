@@ -307,7 +307,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       );
       if (
         preSanitizedCount > 0 &&
-        preSanitizedCount <= 200 &&
+        preSanitizedCount <= 1000 &&
         outputFormat.includes('di') &&
         !isNaN(preSanitizedCount)
       ) {
@@ -415,14 +415,21 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       if (fieldsToExclude.length > 0) {
         sObjectSettingsMap[sObjectName]['fieldsToExclude'] = fieldsToExclude;
       }
+      // object record count
+      let overrideCount = null;
 
-      const customCountInput = await askQuestion(
-        chalk.white.bold(`[${sObjectName}]`) + ' Count for generating records'
-      );
-      const overrideCount = customCountInput ? parseInt(customCountInput, 10) : null;
-      if (overrideCount !== null) {
-        sObjectSettingsMap[sObjectName].count = overrideCount;
+      while (overrideCount === null || overrideCount > 1000 || overrideCount <= 0 || isNaN(overrideCount)) {
+        const customCountInput = await askQuestion(
+          chalk.white.bold(`[${sObjectName}]`) + ' Count for generating records'
+        );
+        overrideCount = customCountInput ? parseInt(customCountInput, 10) : null;
+
+        if (overrideCount === null || overrideCount > 1000 || overrideCount <= 0 || isNaN(overrideCount)) {
+          console.log(chalk.yellow('Invalid input. Please enter a number between 1 and 1000.'));
+        }
       }
+
+      sObjectSettingsMap[sObjectName].count = overrideCount;
 
       // Note:languageChoices is defined above already
       const ovrrideSelectedLangVal = await runSelectPrompt(
