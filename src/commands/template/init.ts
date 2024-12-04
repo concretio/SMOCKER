@@ -25,7 +25,7 @@ type typeSObjectSettingsMap = {
   count?: number;
   language?: string;
   fieldsToExclude?: string[];
-  fieldsToConsider?: { [key: string]: string[] };
+  fieldsToConsider?: { [key: string]: string[] | string };
   'pick-left-fields'?: boolean | string;
 };
 
@@ -434,35 +434,85 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       if (fieldsToExclude.length > 0) {
         sObjectSettingsMap[sObjectName]['fieldsToExclude'] = fieldsToExclude;
       }
+      /* ---------------------New features added------------------------------*/
+
+      // let showNote = true; // Boolean flag to control the note's display
+
+      // if (showNote) {
+      //   console.log(
+      //     chalk.blue.bold(
+      //       `Note: All the dependent picklist fields should be defined in order. You can add them in the sObject [${sObjectName}]. Eg: (dp-Year:2024, dp-Month:2)`
+      //     )
+      //   );
+      // }
+
+      const showDependentPicklistNote = (): void => {
+        console.log(
+          chalk.blue.bold(
+            `Note: All the dependent picklist fields should be defined in order. You can add them in the sObject [${sObjectName}]. Eg: (dp-Year:2024, dp-Month:2)`
+          )
+        );
+      };
+      showDependentPicklistNote();
 
       const fieldsToConsiderInput = await askQuestion(
         chalk.white.bold(`[${sObjectName} - fields to consider]`) +
           ' Provide field names to be considered for generating data. (E.g. Phone: ["909090", "6788489"], Fax )',
         ''
       );
-      console.log('fieldsToConsiderInput=====>', fieldsToConsiderInput);
 
-      const fieldsToConsider: { [key: string]: string[] } = {};
+      /* ---------------------New Features-------------------------------------*/
 
-      const regex = /(\w+):\s*(\[[^\]]*\])|(\w+)/g;
+      // const fieldsToConsider: { [key: string]: string[] } = {};
+      const fieldsToConsider: { [key: string]: string[] | string } = {};
+
+      // const regex = /(\w+):\s*(\[[^\]]*\])|(\w+)/g;
+      const regex = /([\w-]+):\s*(\[[^\]]*\])|([\w-]+)/g;
+
       let match;
       while ((match = regex.exec(fieldsToConsiderInput)) !== null) {
         const key = match[1] || match[3];
         const value = match[2];
         if (key && value) {
-          fieldsToConsider[key] = value
+          const fieldValues = value
             .slice(1, -1)
             .split(',')
-            .map((v) => v.trim().replace(/^"|"$/g, ''));
+            .map((v) => v.trim());
+          console.log('fieldValues', fieldValues);
+          fieldsToConsider[key] = fieldValues;
         } else {
           fieldsToConsider[key] = [];
         }
+
+        if (key.startsWith('dp-')) {
+          if (value) {
+            const fieldValuess = value.slice(1, -1).trim();
+            // console.log('fieldValuess', fieldValuess);
+            fieldsToConsider[key] = fieldValuess;
+          } else {
+            fieldsToConsider[key] = [];
+          }
+        }
       }
+
+      const conflictingFields = Object.keys(fieldsToConsider).filter((field) =>
+        fieldsToExclude.includes(field.toLowerCase())
+      );
+      if (conflictingFields.length > 0) {
+        console.log(
+          chalk.yellow(
+            `Warning: Common fields found in 'fields-to-exclude' and 'fields-to-consider' in sObject '${sObjectName}' is '${conflictingFields.join(
+              ','
+            )}' . You must remove them!`
+          )
+        );
+      }
+
       if (Object.keys(fieldsToConsider).length > 0) {
         sObjectSettingsMap[sObjectName]['fieldsToConsider'] = fieldsToConsider;
       }
 
-      console.log(fieldsToConsider);
+      // console.log(fieldsToConsider);
 
       const pickLeftFields = [
         { name: 'true', message: 'true', value: 'true', hint: '' },
@@ -472,10 +522,19 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         `[${sObjectName} - pick-left-fields] Want to generate data for fields neither in 'fields to consider' nor in 'fields to exclude'`,
         pickLeftFields
       );
-
       if (pickLeftFieldsInput) {
         sObjectSettingsMap[sObjectName]['pick-left-fields'] = pickLeftFieldsInput;
       }
+
+      if (Object.keys(fieldsToConsider).length === 0 && pickLeftFieldsInput === 'false') {
+        console.log(
+          chalk.yellow.bold(
+            "No fields are found to generate data. Make sure to set 'pick-left-fields' to true or add fields to 'fields-to-consider'"
+          )
+        );
+        continue;
+      }
+      /* -------------------------------------------- */
 
       overwriteGlobalSettings = await askQuestion(
         'Do you wish to overwrite global settings for another Object(API name)? (Y/n)',
