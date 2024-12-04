@@ -40,6 +40,13 @@ const messages = Messages.loadMessages('smocker-concretio', 'create.record');
 let depthForRecord = 0;
 // let orgConnection: any;
 export type CreateRecordResult = { path: string };
+type BulkQueryBatchResult = {
+  batchId?: string;
+  id?: string | null;
+  jobId?: string;
+  errors?: string[];
+  success?: boolean;
+};
 
 type TargetData = {
   name: string;
@@ -308,8 +315,9 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
     }
   }
   /**
-   * Inserts records into a specified Salesforce object using the provided connection and JSON data.
-   * The method uses the Salesforce API to create records and returns the results of the insertion.
+   * Inserts records into a specified Salesforce object using the provided connection and JSON data for first 200 records.
+   * For more than 200 record creation, use The Bulk API to processes records in batches (up to 10,000 per batch).
+   * Each batch counts as a single API call, making it efficient for handling large datasets.
    *
    * @param {Connection} conn - The Salesforce connection instance used to perform the insert operation.
    * @param {string} object - The API name of the Salesforce object where the records will be inserted.
@@ -319,16 +327,58 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
    * @author Khushboo Sharma
    */
   private async insertRecords(conn: Connection, object: string, jsonData: GenericRecord[]): Promise<CreateResult[]> {
-    const insertResults = await conn.sobject(object).create(jsonData, { allowRecursive: true });
-    const insertResult: CreateResult[] = (Array.isArray(insertResults) ? insertResults : [insertResults]).map(
-      (result) => ({
-        id: result.id ?? '',
-        success: result.success,
-        errors: result.errors,
-      })
-    );
+    const results: CreateResult[] = [];
+    const dataArray = Array.isArray(jsonData) ? jsonData : [jsonData];
+    const initialRecords = dataArray.slice(0, 200);
+    if (initialRecords.length > 0) {
+      try {
+        const insertResults = await conn.sobject(object).create(initialRecords);
+        const initialInsertResult: CreateResult[] = (Array.isArray(insertResults) ? insertResults : [insertResults]).map(
+          (result) => ({
+            id: result.id ?? '',
+            success: result.success,
+            errors: result.errors,
+          })
+        );
+        results.push(...initialInsertResult);
+      } catch (error) {
+        console.error('Error during standard API insertion:', error);
+        throw error;
+      }
+    }
+    if (dataArray.length > 200) {
+      const remainingRecords = dataArray.slice(200);
+      const job = conn.bulk.createJob(object, 'insert');
+      const batch = job.createBatch();
+      batch.execute(remainingRecords);
 
-    return insertResult;
+      await new Promise<void>((resolve, reject) => {
+        batch.on('queue', () => {
+          batch.poll(1_000 /* interval(ms) */, 30_000 /* timeout(ms) */);
+          resolve();
+        });
+        batch.on('error', (err) => {
+          reject(err);
+        });
+      });
+      const bulkResults: CreateResult[] = await new Promise((resolve, reject) => {
+        batch.on('response', (rets: BulkQueryBatchResult[]) => {
+          const mappedResults: CreateResult[] = rets.map((ret: BulkQueryBatchResult) => ({
+            id: ret.id ?? '',
+            success: ret.success ?? false,
+            errors: ret.errors ?? [],
+          }));
+          resolve(mappedResults);
+        });
+        batch.on('error', (err) => {
+          reject(err);
+        });
+      });
+
+      results.push(...bulkResults);
+      await job.close();
+    }
+    return results;
   }
 
   /**
