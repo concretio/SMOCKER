@@ -22,9 +22,11 @@ export type SetupInitResult = {
 };
 
 type typeSObjectSettingsMap = {
-  fieldsToExclude?: string[];
   count?: number;
   language?: string;
+  fieldsToExclude?: string[];
+  fieldsToConsider?: { [key: string]: string[] | string };
+  'pick-left-fields'?: boolean | string;
 };
 
 /* ------------------- Functions ---------------------- */
@@ -401,20 +403,15 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       }
       sObjectSettingsMap[sObjectName] = {};
 
-      const fieldsToExcludeInput = await askQuestion(
-        chalk.white.bold(`[${sObjectName}]`) +
-          ' Provide fields(API names) to exclude ' +
-          chalk.dim('(comma-separated)'),
-        ''
+      // Note:languageChoices is defined above already
+      const ovrrideSelectedLangVal = await runSelectPrompt(
+        `[${sObjectName}] Language in which test data should be generated`,
+        languageChoices
       );
-      const fieldsToExclude: string[] = fieldsToExcludeInput
-        .toLowerCase()
-        .split(/[\s,]+/)
-        .filter(Boolean);
-
-      if (fieldsToExclude.length > 0) {
-        sObjectSettingsMap[sObjectName]['fieldsToExclude'] = fieldsToExclude;
+      if (ovrrideSelectedLangVal) {
+        sObjectSettingsMap[sObjectName].language = ovrrideSelectedLangVal;
       }
+
       // object record count
       let overrideCount = null;
       while (overrideCount === null) {
@@ -434,14 +431,103 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
           overrideCount = null;
         }
       }
-      // Note:languageChoices is defined above already
-      const ovrrideSelectedLangVal = await runSelectPrompt(
-        `[${sObjectName}] Language in which test data should be generated`,
-        languageChoices
+
+      const fieldsToExcludeInput = await askQuestion(
+        chalk.white.bold(`[${sObjectName}]`) +
+          ' Provide fields(API names) to exclude ' +
+          chalk.dim('(comma-separated)'),
+        ''
       );
-      if (ovrrideSelectedLangVal) {
-        sObjectSettingsMap[sObjectName].language = ovrrideSelectedLangVal;
+      const fieldsToExclude: string[] = fieldsToExcludeInput
+        .toLowerCase()
+        .split(/[\s,]+/)
+        .filter(Boolean);
+
+      if (fieldsToExclude.length > 0) {
+        sObjectSettingsMap[sObjectName]['fieldsToExclude'] = fieldsToExclude;
       }
+
+      /* ---------------------New features added------------------------------*/
+
+      console.log(
+        chalk.blue.bold(
+          'Note: In case of dependent picklist fields, value should be defined in order.Eg: (dp-Year:[2024], dp-Month:[2])'
+        )
+      );
+
+      const fieldsToConsiderInput = await askQuestion(
+        chalk.white.bold(`[${sObjectName} - fields to consider]`) +
+          ' Provide field names to be considered for generating data. (E.g. Phone: ["909090", "6788489"], Fax )',
+        ''
+      );
+
+      const fieldsToConsider: { [key: string]: string[] | string } = {};
+
+      // const regex = /(\w+):\s*(\[[^\]]*\])|(\w+)/g;
+      const regex = /([\w-]+):\s*(\[[^\]]*\])|([\w-]+)/g;
+
+      let match;
+      while ((match = regex.exec(fieldsToConsiderInput)) !== null) {
+        const key = match[1] || match[3];
+        const value = match[2];
+        if (key && value) {
+          const fieldValues = value
+            .slice(1, -1)
+            .split(',')
+            .map((v) => v.trim());
+          fieldsToConsider[key] = fieldValues;
+        } else {
+          fieldsToConsider[key] = [];
+        }
+
+        if (key.startsWith('dp-')) {
+          if (value) {
+            const dpfieldValue = value.slice(1, -1).trim();
+            fieldsToConsider[key] = dpfieldValue;
+          } else {
+            fieldsToConsider[key] = '';
+          }
+        }
+      }
+
+      const conflictingFields = Object.keys(fieldsToConsider).filter((field) =>
+        fieldsToExclude.includes(field.toLowerCase())
+      );
+      if (conflictingFields.length > 0) {
+        console.log(
+          chalk.yellow(
+            `Warning: Common fields found in 'fields-to-exclude' and 'fields-to-consider' in sObject '${sObjectName}' is '${conflictingFields.join(
+              ','
+            )}' . You must remove them!`
+          )
+        );
+      }
+
+      if (Object.keys(fieldsToConsider).length > 0) {
+        sObjectSettingsMap[sObjectName]['fieldsToConsider'] = fieldsToConsider;
+      }
+      const pickLeftFields = [
+        { name: 'true', message: 'true', value: 'true', hint: '' },
+        { name: 'false', message: 'false', value: 'false', hint: '' },
+      ];
+      const pickLeftFieldsInput = await runSelectPrompt(
+        `[${sObjectName} - pick-left-fields] Want to generate data for fields neither in 'fields to consider' nor in 'fields to exclude'`,
+        pickLeftFields
+      );
+      if (pickLeftFieldsInput) {
+        sObjectSettingsMap[sObjectName]['pick-left-fields'] = pickLeftFieldsInput;
+      }
+
+      if (Object.keys(fieldsToConsider).length === 0 && pickLeftFieldsInput === 'false') {
+        console.log(
+          chalk.yellow.bold(
+            "No fields are found to generate data. Make sure to set 'pick-left-fields' to true or add fields to 'fields-to-consider'"
+          )
+        );
+        continue;
+      }
+      /* -------------------------------------------- */
+
       overwriteGlobalSettings = await askQuestion(
         'Do you wish to overwrite global settings for another Object(API name)? (Y/n)',
         'n'
