@@ -141,9 +141,7 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
     });
 
     for (const object of sObjectNames) {
-      const url = `https://api.mockaroo.com/api/generate.json?key=${this.getApiKey()}&count=${sObjectCountMap.get(
-        object
-      )}`;
+      const url = `https://api.mockaroo.com/api/generate.json?key=${this.getApiKey()}&count=` + sObjectCountMap.get(object);
       depthForRecord = 0;
       const fields = sObjectFieldsMap.get(object);
       if (!fields) {
@@ -155,10 +153,10 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
 
       if (outputFormat.includes('json') || outputFormat.includes('json')) {
         const dateTime = new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').split('.')[0];
-        const jsonFilePath = `${process.cwd()}/data_gen/output/${object}_${flags.templateName?.replace(
+        const jsonFilePath = `${process.cwd()}/data_gen/output/${object}_` + flags.templateName?.replace(
           '.json',
           ''
-        )}_${dateTime}.json`;
+        ) + `_${dateTime}.json`;
         fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2));
         this.log(`Data for ${object} saved as JSON in ${jsonFilePath}`);
       }
@@ -166,10 +164,10 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
       if (outputFormat.includes('csv') || outputFormat.includes('csv')) {
         const csvData = this.convertJsonToCsv(jsonData);
         const dateTime = new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').split('.')[0];
-        const csvFilePath = `${process.cwd()}/data_gen/output/${object}_${flags.templateName?.replace(
+        const csvFilePath = `${process.cwd()}/data_gen/output/${object}_` + flags.templateName?.replace(
           '.json',
           ''
-        )}_${dateTime}.csv`;
+        ) + `${dateTime}.csv`;
         fs.writeFileSync(csvFilePath, csvData);
         this.log(`Data for ${object} saved as CSV in ${csvFilePath}`);
       }
@@ -189,8 +187,7 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
         this.log(`Records inserted for ${object}`);
         if (errorSet.size > 0) {
           this.log(
-            `\nFailed to insert ${
-              insertResult.length - insertedIds.length
+            `\nFailed to insert ${insertResult.length - insertedIds.length
             } record(s) for '${object}' object with following error(s):`
           );
           errorSet.forEach((error) => this.log(`- ${error}`));
@@ -208,9 +205,9 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
       this.saveMapToJsonFile(
         'data_gen',
         flags.templateName?.replace('.json', '') +
-          'createdRecords_' +
-          new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').split('.')[0] +
-          '.json'
+        'createdRecords_' +
+        new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').split('.')[0] +
+        '.json'
       );
     }
 
@@ -329,7 +326,6 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
   private async insertRecords(conn: Connection, object: string, jsonData: GenericRecord[]): Promise<CreateResult[]> {
     const results: CreateResult[] = [];
     const dataArray = Array.isArray(jsonData) ? jsonData : [jsonData];
-
     const initialRecords = dataArray.slice(0, 200);
     const insertResults = await conn.sobject(object).create(initialRecords);
     const initialInsertResult: CreateResult[] = (Array.isArray(insertResults) ? insertResults : [insertResults]).map(
@@ -344,14 +340,33 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
       const remainingRecords = dataArray.slice(200);
       const job = conn.bulk.createJob(object, 'insert');
       const batch = job.createBatch();
-      await batch.execute(remainingRecords);
-      const bulkResults: BulkQueryBatchResult[] = await batch.retrieve();
-      const bulkInsertResult: CreateResult[] = bulkResults.map((result) => ({
-        id: result.id ?? '',
-        success: result.success ?? false,
-        errors: result.errors ?? [],
-      }));
-      results.push(...bulkInsertResult);
+      batch.execute(remainingRecords);
+
+      await new Promise<void>((resolve, reject) => {
+        batch.on('queue', () => {
+          batch.poll(1_000 /* interval(ms) */, 30_000 /* timeout(ms) */);
+          resolve();
+        });
+        batch.on('error', (err) => {
+          reject(err);
+        });
+      });
+      const bulkResults: CreateResult[] = await new Promise((resolve, reject) => {
+        batch.on('response', (rets: BulkQueryBatchResult[]) => {
+          const mappedResults: CreateResult[] = rets.map((ret: BulkQueryBatchResult) => ({
+            id: ret.id ?? '',
+            success: ret.success ?? false,
+            errors: ret.errors ?? [],
+          }));
+          resolve(mappedResults);
+        });
+        batch.on('error', (err) => {
+          reject(err);
+        });
+      });
+
+      results.push(...bulkResults);
+      await job.close();
     }
     return results;
   }

@@ -22,11 +22,9 @@ export type SetupInitResult = {
 };
 
 type typeSObjectSettingsMap = {
+  fieldsToExclude?: string[];
   count?: number;
   language?: string;
-  fieldsToExclude?: string[];
-  fieldsToConsider?: { [key: string]: string[] | string };
-  'pick-left-fields'?: boolean | string;
 };
 
 /* ------------------- Functions ---------------------- */
@@ -269,16 +267,16 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
     /* Namespace to exclude */
     const namespaceExcludeValue = await askQuestion(
       'Enter namespace(s) to exclude' +
-        chalk.dim(
-          ' [Fields from these namespace(s) will be ignored. (comma-separated: "mynamespaceA", "mynamespaceB")]'
-        ),
+      chalk.dim(
+        ' [Fields from these namespace(s) will be ignored. (comma-separated: "mynamespaceA", "mynamespaceB")]'
+      ),
       ''
     );
     const namespaceToExclude = namespaceExcludeValue
       ? namespaceExcludeValue
-          .toLowerCase()
-          .split(/[\s,]+/)
-          .filter(Boolean)
+        .toLowerCase()
+        .split(/[\s,]+/)
+        .filter(Boolean)
       : [];
 
     // const validFormats = new Set(['csv', 'json', 'di']);
@@ -309,7 +307,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       );
       if (
         preSanitizedCount > 0 &&
-        preSanitizedCount <= 200 &&
+        preSanitizedCount <= 1000 &&
         outputFormat.includes('di') &&
         !isNaN(preSanitizedCount)
       ) {
@@ -385,7 +383,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       if (!objectsToConfigure.includes(sObjectName)) {
         const addObjectIfProvidedIsMissingFromArray = await askQuestion(
           chalk.yellow(`Warning: '${sObjectName}' is missing from the data template.`) +
-            chalk.white('\nDo you want to add? (Y/n)'),
+          chalk.white('\nDo you want to add? (Y/n)'),
           'n'
         );
         const addObject = addObjectIfProvidedIsMissingFromArray.toLowerCase();
@@ -403,27 +401,10 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       }
       sObjectSettingsMap[sObjectName] = {};
 
-      // Note:languageChoices is defined above already
-      const ovrrideSelectedLangVal = await runSelectPrompt(
-        `[${sObjectName}] Language in which test data should be generated`,
-        languageChoices
-      );
-      if (ovrrideSelectedLangVal) {
-        sObjectSettingsMap[sObjectName].language = ovrrideSelectedLangVal;
-      }
-
-      const customCountInput = await askQuestion(
-        chalk.white.bold(`[${sObjectName}]`) + ' Count for generating records'
-      );
-      const overrideCount = customCountInput ? parseInt(customCountInput, 10) : null;
-      if (overrideCount !== null) {
-        sObjectSettingsMap[sObjectName].count = overrideCount;
-      }
-
       const fieldsToExcludeInput = await askQuestion(
-        chalk.white.bold(`[${sObjectName} - fields to exclude]`) +
-          ' Provide fields(API names) to exclude ' +
-          chalk.dim('(comma-separated)'),
+        chalk.white.bold(`[${sObjectName}]`) +
+        ' Provide fields(API names) to exclude ' +
+        chalk.dim('(comma-separated)'),
         ''
       );
       const fieldsToExclude: string[] = fieldsToExcludeInput
@@ -434,89 +415,33 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       if (fieldsToExclude.length > 0) {
         sObjectSettingsMap[sObjectName]['fieldsToExclude'] = fieldsToExclude;
       }
-      /* ---------------------New features added------------------------------*/
+      // object record count
+      let overrideCount = null;
+      while (overrideCount === null) {
+        const customCountInput = await askQuestion(
+          chalk.white.bold(`[${sObjectName}]`) + ' Count for generating records'
+        );
+        if (!customCountInput) {
+          break;
+        }
+        overrideCount = parseInt(customCountInput, 10);
 
-      console.log(
-        chalk.blue.bold(
-          'Note: In case of dependent picklist fields, value should be defined in order.Eg: (dp-Year:[2024], dp-Month:[2])'
-        )
-      );
-
-      const fieldsToConsiderInput = await askQuestion(
-        chalk.white.bold(`[${sObjectName} - fields to consider]`) +
-          ' Provide field names to be considered for generating data. (E.g. Phone: ["909090", "6788489"], Fax )',
-        ''
-      );
-
-      /* ---------------------New Features-------------------------------------*/
-
-      const fieldsToConsider: { [key: string]: string[] | string } = {};
-
-      // const regex = /(\w+):\s*(\[[^\]]*\])|(\w+)/g;
-      const regex = /([\w-]+):\s*(\[[^\]]*\])|([\w-]+)/g;
-
-      let match;
-      while ((match = regex.exec(fieldsToConsiderInput)) !== null) {
-        const key = match[1] || match[3];
-        const value = match[2];
-        if (key && value) {
-          const fieldValues = value
-            .slice(1, -1)
-            .split(',')
-            .map((v) => v.trim());
-          fieldsToConsider[key] = fieldValues;
+        if (overrideCount > 0 && overrideCount <= 1000 && !isNaN(overrideCount)) {
+          sObjectSettingsMap[sObjectName].count = overrideCount;
+          break;
         } else {
-          fieldsToConsider[key] = [];
-        }
-
-        if (key.startsWith('dp-')) {
-          if (value) {
-            const dpfieldValue = value.slice(1, -1).trim();
-            fieldsToConsider[key] = dpfieldValue;
-          } else {
-            fieldsToConsider[key] = '';
-          }
+          console.log(chalk.yellow('Invalid input. Please enter a number between 1 and 1000'));
+          overrideCount = null;
         }
       }
-
-      const conflictingFields = Object.keys(fieldsToConsider).filter((field) =>
-        fieldsToExclude.includes(field.toLowerCase())
+      // Note:languageChoices is defined above already
+      const ovrrideSelectedLangVal = await runSelectPrompt(
+        `[${sObjectName}] Language in which test data should be generated`,
+        languageChoices
       );
-      if (conflictingFields.length > 0) {
-        console.log(
-          chalk.yellow(
-            `Warning: Common fields found in 'fields-to-exclude' and 'fields-to-consider' in sObject '${sObjectName}' is '${conflictingFields.join(
-              ','
-            )}' . You must remove them!`
-          )
-        );
+      if (ovrrideSelectedLangVal) {
+        sObjectSettingsMap[sObjectName].language = ovrrideSelectedLangVal;
       }
-
-      if (Object.keys(fieldsToConsider).length > 0) {
-        sObjectSettingsMap[sObjectName]['fieldsToConsider'] = fieldsToConsider;
-      }
-      const pickLeftFields = [
-        { name: 'true', message: 'true', value: 'true', hint: '' },
-        { name: 'false', message: 'false', value: 'false', hint: '' },
-      ];
-      const pickLeftFieldsInput = await runSelectPrompt(
-        `[${sObjectName} - pick-left-fields] Want to generate data for fields neither in 'fields to consider' nor in 'fields to exclude'`,
-        pickLeftFields
-      );
-      if (pickLeftFieldsInput) {
-        sObjectSettingsMap[sObjectName]['pick-left-fields'] = pickLeftFieldsInput;
-      }
-
-      if (Object.keys(fieldsToConsider).length === 0 && pickLeftFieldsInput === 'false') {
-        console.log(
-          chalk.yellow.bold(
-            "No fields are found to generate data. Make sure to set 'pick-left-fields' to true or add fields to 'fields-to-consider'"
-          )
-        );
-        continue;
-      }
-      /* -------------------------------------------- */
-
       overwriteGlobalSettings = await askQuestion(
         'Do you wish to overwrite global settings for another Object(API name)? (Y/n)',
         'n'
@@ -555,4 +480,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
     console.log(chalk.green(`Success: ${templateFileName} created at ${filePath}`));
     return config;
   }
+  // log(arg0: string) {
+  //   throw new Error('Method not implemented.');
+  // }
 }
