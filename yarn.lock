@@ -1541,10 +1541,12 @@
     proc-log "^5.0.0"
     which "^5.0.0"
 
+
 "@oclif/core@^4", "@oclif/core@^4.0.3", "@oclif/core@^4.0.32":
   version "4.0.33"
   resolved "https://registry.npmjs.org/@oclif/core/-/core-4.0.33.tgz"
   integrity sha512-NoTDwJ2L/ywpsSjcN7jAAHf3m70Px4Yim2SJrm16r70XpnfbNOdlj1x0HEJ0t95gfD+p/y5uy+qPT/VXTh/1gw==
+
   dependencies:
     ansi-escapes "^4.3.2"
     ansis "^3.3.2"
@@ -1723,6 +1725,7 @@
     "@pnpm/network.ca-file" "^1.0.1"
     config-chain "^1.1.11"
 
+
 "@rtsao/scc@^1.1.0":
   version "1.1.0"
   resolved "https://registry.npmjs.org/@rtsao/scc/-/scc-1.1.0.tgz"
@@ -1812,6 +1815,7 @@
     typedoc-plugin-missing-exports "^3.0.0"
     typescript "^5.5.4"
     wireit "^0.14.5"
+
 
 "@salesforce/kit@^3.1.2", "@salesforce/kit@^3.1.3", "@salesforce/kit@^3.2.2":
   version "3.2.3"
@@ -2935,6 +2939,7 @@ ansi-colors@^4.1.1, ansi-colors@^4.1.3:
   resolved "https://registry.npmjs.org/ansi-colors/-/ansi-colors-4.1.3.tgz"
   integrity sha512-/6w/C21Pm1A7aZitlI5Ni/2J6FFQN8i1Cvz3kHABAAbw93v/NlvKdVOqz7CCWz/3iv/JplRSEEZ83XION15ovw==
 
+
 ansi-escapes@^3.2.0:
   version "3.2.0"
   resolved "https://registry.npmjs.org/ansi-escapes/-/ansi-escapes-3.2.0.tgz"
@@ -3655,11 +3660,13 @@ cli-select@^1.1.2:
     ansi-escapes "^3.2.0"
 
 cli-spinners@^2.6.1:
+
   version "2.9.2"
   resolved "https://registry.npmjs.org/cli-spinners/-/cli-spinners-2.9.2.tgz"
   integrity sha512-ywqV+5MmyL4E7ybXgKys4DugZbX0FC6LnwrhjuykIjnK9k8OQacQ7axGKnjDXWNhns0xot3bZI5h55H8yo9cJg==
 
 cli-spinners@^2.9.2:
+
   version "2.9.2"
   resolved "https://registry.npmjs.org/cli-spinners/-/cli-spinners-2.9.2.tgz"
   integrity sha512-ywqV+5MmyL4E7ybXgKys4DugZbX0FC6LnwrhjuykIjnK9k8OQacQ7axGKnjDXWNhns0xot3bZI5h55H8yo9cJg==
@@ -6972,6 +6979,7 @@ marked@^12.0.0:
   resolved "https://registry.npmjs.org/marked/-/marked-12.0.2.tgz"
   integrity sha512-qXUm7e/YKFoqFPYPa3Ukg9xlI5cyAtGmyEIzMfW//m6kXwCy2Ps9DYf5ioijFKQ8qyuscrHoY04iJGctu2Kg0Q==
 
+
 marked@^13.0.0, "marked@>=1 <15":
   version "13.0.3"
   resolved "https://registry.npmjs.org/marked/-/marked-13.0.3.tgz"
@@ -6996,6 +7004,7 @@ mdurl@^2.0.0:
   version "2.0.0"
   resolved "https://registry.npmjs.org/mdurl/-/mdurl-2.0.0.tgz"
   integrity sha512-Lf+9+2r+Tdp5wXDXC4PcIBjTDtq4UKjCPMQhKIuzpJNW0b96kVqSwW0bT7FhRSfmAiFYgP+SCRvdrDozfh0U5w==
+
 
 meow@^13.0.0:
   version "13.2.0"
@@ -7167,6 +7176,7 @@ minimatch@^9.0.0, minimatch@^9.0.4, minimatch@^9.0.5:
   version "9.0.5"
   resolved "https://registry.npmjs.org/minimatch/-/minimatch-9.0.5.tgz"
   integrity sha512-G6T0ZX48xgozx7587koeX9Ys2NYy6Gmv//P89sEte9V9whIapMNF4idKxnW2QtCcLiTWlb/wfCabAtAFWhhBow==
+
   dependencies:
     brace-expansion "^2.0.1"
 
@@ -9045,6 +9055,7 @@ shiki@^1.16.2:
   version "1.24.0"
   resolved "https://registry.npmjs.org/shiki/-/shiki-1.24.0.tgz"
   integrity sha512-qIneep7QRwxRd5oiHb8jaRzH15V/S8F3saCXOdjwRLgozZJr5x2yeBhQtqkO3FSzQDwYEFAYuifg4oHjpDghrg==
+
   dependencies:
     "@shikijs/core" "1.24.0"
     "@shikijs/engine-javascript" "1.24.0"
@@ -9959,6 +9970,7 @@ typedoc@^0.26.5:
   version "0.26.11"
   resolved "https://registry.npmjs.org/typedoc/-/typedoc-0.26.11.tgz"
   integrity sha512-sFEgRRtrcDl2FxVP58Ze++ZK2UQAEvtvvH8rRlig1Ja3o7dDaMHmaBfvJmdGnNEFaLTpQsN8dpvZaTqJSu/Ugw==
+
   dependencies:
     lunr "^2.3.9"
     markdown-it "^14.1.0"

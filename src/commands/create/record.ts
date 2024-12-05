@@ -327,7 +327,6 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
   private async insertRecords(conn: Connection, object: string, jsonData: GenericRecord[]): Promise<CreateResult[]> {
     const results: CreateResult[] = [];
     const dataArray = Array.isArray(jsonData) ? jsonData : [jsonData];
-
     const initialRecords = dataArray.slice(0, 200);
     const insertResults = await conn.sobject(object).create(initialRecords);
     const initialInsertResult: CreateResult[] = (Array.isArray(insertResults) ? insertResults : [insertResults]).map(
