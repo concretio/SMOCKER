@@ -58,6 +58,14 @@ Specify object fields to exclude from test data generation.
 
 Use `--fieldsToExclude` or `-e` to exclude specific fields from test data generation for a given object. This setting applies only at the object level and cannot be defined at template level.
 
+# flags.fieldsToConsider.summary
+
+Specify object fields to exclude from test data generation.
+
+# flags.fieldsToConsider.description
+
+Use `--fieldsToExclude` or `-e` to exclude specific fields from test data generation for a given object. This setting applies only at the object level and cannot be defined at template level.
+
 # Examples
 
 - `sf template add -t <template-name> <global flags with values -f,-x,-c,-l>`

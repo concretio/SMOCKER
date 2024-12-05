@@ -20,6 +20,7 @@ export type TemplateAddResult = {
 
 type typeSObjectSettingsMap = {
   fieldsToExclude?: string[];
+  fieldsToConsider?: fieldsToConsiderMap;
   count?: number;
   language?: string;
 };
@@ -42,7 +43,48 @@ type tempAddFlags = {
   namespaceToExclude?: string;
   outputFormat?: string;
   fieldsToExclude?: string;
+  fieldsToConsider?: string;
 };
+
+type fieldsToConsiderMap = {
+  [key: string]: string[] | string;
+};
+
+export function parseAndMergeFieldsToConsider(
+  input: string,
+  existingConfig: fieldsToConsiderMap = {}
+): fieldsToConsiderMap {
+  const fieldsToConsider: fieldsToConsiderMap = { ...existingConfig };
+
+  const regex = /([\w-]+):\s*(\[[^\]]*\])|([\w-]+)/g;
+
+  let match;
+  while ((match = regex.exec(input)) !== null) {
+    const key = match[1] || match[3];
+    const value = match[2];
+
+    if (key && value) {
+      const fieldValues = value
+        .slice(1, -1)
+        .split(',')
+        .map((v) => v.trim());
+      existingConfig[key] = fieldValues;
+    } else {
+      existingConfig[key] = [];
+    }
+    if (key.startsWith('dp-')) {
+      if (value) {
+        const dpfieldValue = value.slice(1, -1).trim();
+        fieldsToConsider[key] = dpfieldValue;
+      } else {
+        fieldsToConsider[key] = '';
+      }
+    }
+  }
+
+  return fieldsToConsider;
+}
+
 export function updateOrInitializeConfig(
   configObject: any,
   flags: tempAddFlags,
@@ -152,6 +194,12 @@ export const templateAddFlags = {
     description: messages.getMessage('flags.fieldsToExclude.description'),
     required: false,
   }),
+  fieldsToConsider: Flags.string({
+    summary: messages.getMessage('flags.fieldsToConsider.summary'),
+    description: messages.getMessage('flags.fieldsToConsider.description'),
+    char: 'i',
+    required: false,
+  }),
 };
 
 let config: templateSchema;
@@ -214,6 +262,7 @@ export default class TemplateAdd extends SfCommand<void> {
           }
         }
         const configFileForSobject: typeSObjectSettingsMap = objectConfig[objectName];
+
         allowedFlags = ['fieldsToExclude', 'language', 'count'];
         updateOrInitializeConfig(configFileForSobject, flags, allowedFlags, this.log.bind(this));
       } else {
