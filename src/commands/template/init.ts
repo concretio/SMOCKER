@@ -57,7 +57,7 @@ async function runMultiSelectPrompt(): Promise<string[]> {
     };
 
     const outputChoices = [
-      { name: 'DI', message: 'DI', value: 'di', hint: 'Create records into org (limit- upto 200)' },
+      { name: 'DI', message: 'DI', value: 'di', hint: 'Create records into org (limit- upto 1000)' },
       { name: 'JSON', message: 'JSON', value: 'json' },
       { name: 'CSV', message: 'CSV', value: 'csv' },
     ];
@@ -211,7 +211,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
           "_example_namespaceToExclude": "namespaceToExclude:['namespace1','namespace2']",
           "namespaceToExclude": [],
           
-          "_comment_outputFormat": "Desired output format(s) for the storing the generated test data; Only 3 values are valid- csv,json and di(i.e. for direct insertion of upto 200 records into the connected org)",
+          "_comment_outputFormat": "Desired output format(s) for the storing the generated test data; Only 3 values are valid- csv,json and di(i.e. for direct insertion of upto 1000 records into the connected org)",
           "_example_outputFormat": "outputFormat:['csv','json','di']",
           "outputFormat": ["csv"],
           
@@ -267,16 +267,16 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
     /* Namespace to exclude */
     const namespaceExcludeValue = await askQuestion(
       'Enter namespace(s) to exclude' +
-        chalk.dim(
-          ' [Fields from these namespace(s) will be ignored. (comma-separated: "mynamespaceA", "mynamespaceB")]'
-        ),
+      chalk.dim(
+        ' [Fields from these namespace(s) will be ignored. (comma-separated: "mynamespaceA", "mynamespaceB")]'
+      ),
       ''
     );
     const namespaceToExclude = namespaceExcludeValue
       ? namespaceExcludeValue
-          .toLowerCase()
-          .split(/[\s,]+/)
-          .filter(Boolean)
+        .toLowerCase()
+        .split(/[\s,]+/)
+        .filter(Boolean)
       : [];
 
     // const validFormats = new Set(['csv', 'json', 'di']);
@@ -328,7 +328,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       }
 
       if (outputFormat.includes('di')) {
-        console.log(chalk.yellow('Invalid input. Please enter between 1-200, with DI- direct insertion'));
+        console.log(chalk.yellow('Invalid input. Please enter between 1-1000, with DI- direct insertion'));
       } else {
         console.log(chalk.yellow('Invalid input. Please enter valid number 1-1000'));
       }
@@ -383,7 +383,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       if (!objectsToConfigure.includes(sObjectName)) {
         const addObjectIfProvidedIsMissingFromArray = await askQuestion(
           chalk.yellow(`Warning: '${sObjectName}' is missing from the data template.`) +
-            chalk.white('\nDo you want to add? (Y/n)'),
+          chalk.white('\nDo you want to add? (Y/n)'),
           'n'
         );
         const addObject = addObjectIfProvidedIsMissingFromArray.toLowerCase();
@@ -403,8 +403,8 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
 
       const fieldsToExcludeInput = await askQuestion(
         chalk.white.bold(`[${sObjectName}]`) +
-          ' Provide fields(API names) to exclude ' +
-          chalk.dim('(comma-separated)'),
+        ' Provide fields(API names) to exclude ' +
+        chalk.dim('(comma-separated)'),
         ''
       );
       const fieldsToExclude: string[] = fieldsToExcludeInput
