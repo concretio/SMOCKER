@@ -7,39 +7,17 @@ import { Messages, Connection, Org } from '@salesforce/core';
 import chalk from 'chalk';
 import { loading, LoaderActions } from 'cli-loading-animation';
 import Spinner from 'cli-spinners';
-
+import {
+  TemplateValidateResult,
+  sObjectSchemaType,
+  templateSchema,
+  sObjectMetaType,
+  Types,
+} from '../../utils/types.js';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.validate');
 
-type TemplateValidateResult = {
-  path: string;
-};
 
-type sObjectSchemaType = {
-  fieldsToExclude?: string[];
-  count?: number;
-  language?: string;
-};
-
-type SObjectItem = { [key: string]: sObjectSchemaType };
-
-type templateSchema = {
-  templateFileName: string;
-  namespaceToExclude: string[];
-  outputFormat: string[];
-  language: string;
-  count: number;
-  sObjects: SObjectItem[];
-};
-
-type Field = {
-  fullName: string | null | undefined;
-};
-
-type sObjectMetaType = {
-  nameField?: { label: string; type: string };
-  fields?: Field[];
-};
 
 dotenv.config();
 export async function getConnectionWithSalesforce(): Promise<Connection> {
@@ -103,10 +81,10 @@ export async function validateConfigJson(connection: Connection, configPath: str
       }
 
       const getAllFields: string[] = sObjectMeta.fields
-        ? sObjectMeta.fields
-            .filter((field: Field) => field.fullName != null)
-            .map((field: Field) => field.fullName!.toLowerCase())
-        : [];
+      ? sObjectMeta.fields
+          .filter((field: Types.Field) => field.fullName != null)
+          .map((field: Types.Field) => field.fullName!.toLowerCase())
+      : [];
 
       /*
       handling the name field for the custom object

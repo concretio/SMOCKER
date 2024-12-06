@@ -9,47 +9,22 @@ import path from 'node:path';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import chalk from 'chalk';
+import { arrayFlags } from '../../utils/constants.js';
+import { templateSchema , tempAddFlags , typeSObjectSettingsMap, SObjectItem  } from '../../utils/types.js';
 import { askQuestion } from './init.js';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.upsert');
 
-export type TemplateAddResult = {
-  path: string;
-};
 
-type typeSObjectSettingsMap = {
-  fieldsToExclude?: string[];
-  count?: number;
-  language?: string;
-};
 
-type SObjectItem = { [key: string]: typeSObjectSettingsMap };
-
-type templateSchema = {
-  templateFileName: string;
-  namespaceToExclude: string[];
-  outputFormat: string[];
-  language: string;
-  count: number;
-  sObjects: SObjectItem[];
-};
-type tempAddFlags = {
-  sObjects?: string;
-  templateName: string;
-  language?: string;
-  count?: number;
-  namespaceToExclude?: string;
-  outputFormat?: string;
-  fieldsToExclude?: string;
-};
 export function updateOrInitializeConfig(
   configObject: any,
   flags: tempAddFlags,
   allowedFlags: string[],
   log: (message: string) => void
 ): void {
-  const arrayFlags = ['namespaceToExclude', 'outputFormat', 'fieldsToExclude'];
+ 
 
   for (const [key, value] of Object.entries(flags)) {
     if (allowedFlags.includes(key) && value !== undefined) {

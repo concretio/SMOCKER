@@ -6,26 +6,12 @@ import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import Enquirer from 'enquirer';
 import { getConnectionWithSalesforce, validateConfigJson } from '../template/validate.js';
-
+import { SetupInitResult, typeSObjectSettingsMap } from '../../utils/types.js';
+import { languageChoices, outputChoices } from '../../utils/constants.js';
 // Import messages from the specified directory
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.init');
 
-/* ------------------- Types ---------------------- */
-export type SetupInitResult = {
-  templateFileName: string;
-  namespaceToExclude: string[];
-  outputFormat: string[];
-  language: string;
-  count: number;
-  sObjects: Array<{ [key: string]: typeSObjectSettingsMap }>;
-};
-
-type typeSObjectSettingsMap = {
-  fieldsToExclude?: string[];
-  count?: number;
-  language?: string;
-};
 
 /* ------------------- Functions ---------------------- */
 
@@ -55,12 +41,6 @@ async function runMultiSelectPrompt(): Promise<string[]> {
     type Answers = {
       choices: string[];
     };
-
-    const outputChoices = [
-      { name: 'DI', message: 'DI', value: 'di', hint: 'Create records into org (limit- upto 200)' },
-      { name: 'JSON', message: 'JSON', value: 'json' },
-      { name: 'CSV', message: 'CSV', value: 'csv' },
-    ];
     // Listen for Ctrl+C and terminate the CLI
     process.on('SIGINT', () => {
       console.log('\nCLI terminated by the user.');
@@ -291,10 +271,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
     }
 
     /* generate data in language */
-    const languageChoices = [
-      { name: 'en', message: 'en', value: 'en', hint: 'English (US)' },
-      { name: 'jp', message: 'jp', value: 'jp', hint: 'Japanese' },
-    ];
+
     const language = await runSelectPrompt('In which language would you like to generate test data?', languageChoices);
 
     /* record count */
