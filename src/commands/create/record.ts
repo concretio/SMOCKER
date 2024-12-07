@@ -36,7 +36,7 @@ import { Connection } from '@salesforce/core';
 import fetch from 'node-fetch';
 // import * as cliProgress from 'cli-progress';
 import { Progress }  from '@salesforce/sf-plugins-core';
-import chalk from 'chalk';
+import chalk  from 'chalk';
 import { templateAddFlags } from '../template/upsert.js';
 import { MOCKAROO_API_CALLS_PER_DAY, MOCKAROO_CHUNK_SIZE } from '../../utils/constants.js';
 // import { title } from 'process';
@@ -209,8 +209,8 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
     //     }
     //   }
     // }
-    let jsonData: any  
-    let fetchedData: Record<string, any> 
+    let jsonData: any 
+    let fetchedData: Record<string, any > 
     let apiCallout: number = 0
     for (const object of sObjectNames) {
       depthForRecord = 0;
@@ -232,7 +232,8 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
         let allData: any[] = []; 
         for (let i = 0; i < numberOfChunks; i++) {
           
-            if (apiCallout >= MOCKAROO_API_CALLS_PER_DAY) {
+          if (apiCallout >= MOCKAROO_API_CALLS_PER_DAY) {
+                this.log('API LIMIT EXCEEDED FOR THE DAY')
                 throw new Error('API call limit exceeded for the day.');
             }
           const currentChunkSize = countofRecordsToGenerate > MOCKAROO_CHUNK_SIZE ? MOCKAROO_CHUNK_SIZE : countofRecordsToGenerate; 
@@ -447,16 +448,15 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
        batch.execute(remainingRecords);
       await new Promise<void>((resolve, reject) => {
         batch.on('queue', () => {
-          batch.poll(1_000 /* interval(ms) */, 30_000 /* timeout(ms) */);
+          batch.poll(1000 /* interval(ms) */, 30_000 /* timeout(ms) */);
           const pollInterval = setInterval(() => {
             batch
               .check()
               .then((batchStatus) => {
                //  console.log(`Records processed: ${batchStatus.numberRecordsProcessed}`);
-                const   recordsProcessed: any  = Number(batchStatus.numberRecordsProcessed) || 0;
-                const   percentage: any  = Math.ceil((recordsProcessed / remainingTotal) * 100); // Percentage calculation for remaining records
+                const  recordsProcessed: number  = Number(batchStatus.numberRecordsProcessed) || 0;
+                const   percentage: number  = Math.ceil((recordsProcessed / remainingTotal) * 100); // Percentage calculation for remaining records
                 progressBar.update(percentage);
-
                 if (batchStatus.state === 'Completed' || batchStatus.state === 'Failed') {
                   clearInterval(pollInterval);
                   if (batchStatus.state === 'Failed') {
@@ -465,8 +465,11 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
                   } else {
               //      console.log('Batch completed.');
                     progressBar.finish();
+                    // process.stdout.cursorTo(0);
+                    // process.stdout.clearLine(0);
+                    // console.log('Processing complete. Moving to next step...');
+
                     batch.on('response', (rets: BulkQueryBatchResult[]) => {
-                      console.log('482');
                       const mappedResults: CreateResult[] = rets.map((ret: BulkQueryBatchResult) => ({
                         id: ret.id ?? '',
                         success: ret.success ?? false,
@@ -510,7 +513,7 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
 
     return results;
   }
-
+ 
   /**
    * Updates the set of created record IDs for a specified Salesforce object based on the results of an insert operation.
    * This method filters the successful results and extracts their IDs, then updates the `createdRecordsIds` map with these IDs.

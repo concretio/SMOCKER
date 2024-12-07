@@ -284,18 +284,8 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       );
       if (
         preSanitizedCount > 0 &&
-        preSanitizedCount <= 1000 &&
         outputFormat.includes('di') &&
         !isNaN(preSanitizedCount)
-      ) {
-        count = preSanitizedCount;
-        break;
-      } else if (
-        preSanitizedCount > 0 &&
-        preSanitizedCount <= 1000 &&
-        preSanitizedCount !== undefined &&
-        !isNaN(preSanitizedCount) &&
-        !outputFormat.includes('di')
       ) {
         count = preSanitizedCount;
         break;
@@ -303,11 +293,8 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         count = 1;
         break;
       }
-
-      if (outputFormat.includes('di')) {
-        console.log(chalk.yellow('Invalid input. Please enter between 1-200, with DI- direct insertion'));
-      } else {
-        console.log(chalk.yellow('Invalid input. Please enter valid number 1-1000'));
+       else {
+        console.log(chalk.yellow('Enter a valid number '));
       }
     }
 

@@ -1,3 +1,4 @@
+/* eslint-disable sf-plugin/only-extend-SfCommand */
 /* eslint-disable no-empty */
 /* eslint-disable @typescript-eslint/no-shadow */
 /* eslint-disable no-underscore-dangle */
