@@ -135,7 +135,7 @@ function logRemoveMessage(fieldValues: string, sObjectName: string): void {
   );
 }
 function DeleteSObjectArrayValue(jsonData: templateSchema, sObjectName: string, fieldValues: string[]): templateSchema {
-  const concernedObject = jsonData.sObjects.find((obj) => Object.prototype.hasOwnProperty.call(obj, sObjectName));
+  const concernedObject = jsonData.sObjects.find((obj) => Object.keys(obj).some(key => key.toLowerCase() === sObjectName));
   const existingValues = concernedObject ? concernedObject[sObjectName]?.['fieldsToExclude'] : undefined;
   if (concernedObject && existingValues !== undefined) {
     const valuesNotInJSON: string[] = fieldValues.filter(
@@ -198,12 +198,6 @@ function validateFlags(flags: string[]): boolean {
   }
   return true;
 }
-function handleFieldsToExclude(flags: flagObj, jsonData: templateSchema, updatedJsonData: templateSchema): templateSchema {
-  if ('sObject' in flags && 'fieldsToExclude' in flags && Array.isArray(flags.fieldsToExclude)) {
-    updatedJsonData = DeleteSObjectArrayValue(jsonData, (flags.sObject as string).toLowerCase(), parseInput(flags.fieldsToExclude));
-  }
-  return updatedJsonData;
-}
 function checkValidObject(flags: flagObj, jsonData: templateSchema): void {
   let concernedObject;
   if (Object.keys(flags).includes('sObject') && ((Object.keys(flags).includes('fieldsToExclude') || Object.keys(flags).includes('language') || Object.keys(flags).includes('fieldsToConsider') || Object.keys(flags).includes('count')))) {
@@ -216,30 +210,33 @@ function checkValidObject(flags: flagObj, jsonData: templateSchema): void {
 }
 function validateInput(flags: flagObj, jsonData: templateSchema): templateSchema {
   checkValidObject(flags, jsonData);
-  let updatedJsonData;
+  let updatedJsonData = jsonData;
   for (const [key] of Object.entries(flags)) {
     switch (key) {
       case 'fieldsToExclude':
-        updatedJsonData = updatedJsonData !== undefined ? handleFieldsToExclude(flags, jsonData, updatedJsonData) : updatedJsonData;
+        if ('sObject' in flags && 'fieldsToExclude' in flags && Array.isArray(flags.fieldsToExclude)) {
+          console.log('upd json:', updatedJsonData);
+          updatedJsonData = DeleteSObjectArrayValue(updatedJsonData, (flags.sObject as string).toLowerCase(), parseInput(flags.fieldsToExclude));
+        }
         break;
       case 'language':
       case 'count':
-        updatedJsonData = deleteSObjectField(jsonData, (flags.sObject as string).toLowerCase(), key);
+        updatedJsonData = deleteSObjectField(updatedJsonData, (flags.sObject as string).toLowerCase(), key);
         break;
 
       case 'namespaceToExclude':
       case 'outputFormat': {
         const fieldValues = (key === 'outputFormat') ? flags.outputFormat : flags.namespaceToExclude;
         if (Array.isArray(fieldValues)) {
-          updatedJsonData = DeleteArrayValue(jsonData, key, parseInput(fieldValues));
+          updatedJsonData = DeleteArrayValue(updatedJsonData, key, parseInput(fieldValues));
         }
         break;
       }
       case 'sObject':
-        updatedJsonData = Object.keys(flags).length === 2 && flags.sObject ? DeletesObject(jsonData, parseInput([flags.sObject])) : updatedJsonData;
+        updatedJsonData = Object.keys(flags).length === 2 && flags.sObject ? DeletesObject(updatedJsonData, parseInput([flags.sObject])) : updatedJsonData;
         break;
       case 'fieldsToConsider':
-        updatedJsonData = flags.fieldsToConsider ? DeleteFieldsToConsiderValues(jsonData, (flags.sObject as string).toLowerCase(), parseInput(flags.fieldsToConsider)) : updatedJsonData;
+        updatedJsonData = flags.fieldsToConsider ? DeleteFieldsToConsiderValues(updatedJsonData, (flags.sObject as string).toLowerCase(), parseInput(flags.fieldsToConsider)) : updatedJsonData;
         break;
       default:
         break;
