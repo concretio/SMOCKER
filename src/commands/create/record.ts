@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 /* eslint-disable no-console */
 /* eslint-disable sf-plugin/command-summary */
 /* eslint-disable sf-plugin/command-example */
@@ -425,7 +426,7 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
    * @author Khushboo Sharma
    */
   private async insertRecords(conn: Connection, object: string, jsonData: GenericRecord[]): Promise<CreateResult[]> {
-    const results: CreateResult[] = [];
+    const   results: CreateResult[] = [];
     const dataArray = Array.isArray(jsonData) ? jsonData : [jsonData];
 
     const initialRecords = dataArray.slice(0, 200);
@@ -439,7 +440,6 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
     );
     results.push(...initialInsertResult);
     if (dataArray.length > 200) {
-      
       progressBar.start(100, { title: 'Test' } ); 
       const remainingRecords = dataArray.slice(200);
       const remainingTotal = remainingRecords.length
@@ -462,23 +462,20 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
                   if (batchStatus.state === 'Failed') {
                     console.error('Batch failed.');
                     reject(new Error('Batch processing failed.'));
-                  } else {
-              //      console.log('Batch completed.');
-                    progressBar.finish();
-                    // process.stdout.cursorTo(0);
-                    // process.stdout.clearLine(0);
-                    // console.log('Processing complete. Moving to next step...');
-
-                    batch.on('response', (rets: BulkQueryBatchResult[]) => {
-                      const mappedResults: CreateResult[] = rets.map((ret: BulkQueryBatchResult) => ({
-                        id: ret.id ?? '',
-                        success: ret.success ?? false,
-                        errors: ret.errors ?? [],
-                      }));
-                      results.push(...mappedResults); // Push results into the results array
-                    });  
-                    resolve();
                   }
+              //     else {
+              // //      console.log('Batch completed.');
+              //       progressBar.finish();
+              //       batch.on('response', (rets: BulkQueryBatchResult[]) => {
+              //         const mappedResults: CreateResult[] = rets.map((ret: BulkQueryBatchResult) => ({
+              //           id: ret.id ?? '',
+              //           success: ret.success ?? false,
+              //           errors: ret.errors ?? [],
+              //         }));
+              //          results.push(...mappedResults) // Push results into the results array
+              //       });  
+              //       resolve();
+              //     }
                 }
               })
               .catch((err) => {
@@ -487,6 +484,17 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
                 reject(err);
               });
           }, 1000);
+        });
+        batch.on('response', (rets: BulkQueryBatchResult[]) => {
+          const mappedResults: CreateResult[] = rets.map((ret: BulkQueryBatchResult) => ({
+            id: ret.id ?? '',
+            success: ret.success ?? false,
+            errors: ret.errors ?? [],
+          }));
+    
+          results.push(...mappedResults); // Push the bulk results to the main results array
+          progressBar.finish();
+          resolve();
         });
         batch.on('error', (err) => {
           reject(err);
@@ -510,7 +518,6 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
       // results.push(...bulkResults);
       await job.close();
     }
-
     return results;
   }
  
