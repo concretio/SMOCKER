@@ -26,7 +26,7 @@ type typeSObjectSettingsMap = {
   language?: string;
   fieldsToExclude?: string[];
   fieldsToConsider?: { [key: string]: string[] | string };
-  'pick-left-fields'?: boolean | string;
+  pickLeftFields?: boolean | string;
 };
 
 /* ------------------- Functions ---------------------- */
@@ -515,7 +515,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         pickLeftFields
       );
       if (pickLeftFieldsInput) {
-        sObjectSettingsMap[sObjectName]['pick-left-fields'] = pickLeftFieldsInput;
+        sObjectSettingsMap[sObjectName]['pickLeftFields'] = pickLeftFieldsInput === 'true';
       }
 
       if (Object.keys(fieldsToConsider).length === 0 && pickLeftFieldsInput === 'false') {

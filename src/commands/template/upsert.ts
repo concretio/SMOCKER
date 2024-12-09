@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable no-param-reassign */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -23,6 +24,7 @@ type typeSObjectSettingsMap = {
   fieldsToConsider?: fieldsToConsiderMap;
   count?: number;
   language?: string;
+  pickLeftField?: boolean;
 };
 
 type SObjectItem = { [key: string]: typeSObjectSettingsMap };
@@ -50,28 +52,28 @@ type fieldsToConsiderMap = {
   [key: string]: string[] | string;
 };
 
-export function parseAndMergeFieldsToConsider(
-  input: string,
-  existingConfig: fieldsToConsiderMap = {}
-): fieldsToConsiderMap {
-  const fieldsToConsider: fieldsToConsiderMap = { ...existingConfig };
+export function handleFieldsToConsider(sObjectConfig: typeSObjectSettingsMap, input: string): typeSObjectSettingsMap {
+  if (!sObjectConfig.fieldsToConsider) {
+    sObjectConfig.fieldsToConsider = {};
+  }
+
+  const fieldsToConsider: fieldsToConsiderMap = {};
 
   const regex = /([\w-]+):\s*(\[[^\]]*\])|([\w-]+)/g;
-
   let match;
   while ((match = regex.exec(input)) !== null) {
     const key = match[1] || match[3];
     const value = match[2];
-
     if (key && value) {
       const fieldValues = value
         .slice(1, -1)
         .split(',')
         .map((v) => v.trim());
-      existingConfig[key] = fieldValues;
+      fieldsToConsider[key] = fieldValues;
     } else {
-      existingConfig[key] = [];
+      fieldsToConsider[key] = [];
     }
+
     if (key.startsWith('dp-')) {
       if (value) {
         const dpfieldValue = value.slice(1, -1).trim();
@@ -82,7 +84,9 @@ export function parseAndMergeFieldsToConsider(
     }
   }
 
-  return fieldsToConsider;
+  sObjectConfig.fieldsToConsider = { ...sObjectConfig.fieldsToConsider, ...fieldsToConsider };
+
+  return sObjectConfig;
 }
 
 export function updateOrInitializeConfig(
@@ -91,66 +95,64 @@ export function updateOrInitializeConfig(
   allowedFlags: string[],
   log: (message: string) => void
 ): void {
-  const arrayFlags = ['namespaceToExclude', 'outputFormat', 'fieldsToExclude'];
-
   for (const [key, value] of Object.entries(flags)) {
     if (allowedFlags.includes(key) && value !== undefined) {
-      // Checking if values need to be converted to an string[]
-      if (arrayFlags.includes(key) && typeof value === 'string') {
-        const valuesArray = value
-          .toLowerCase()
-          .split(/[\s,]+/)
-          .filter(Boolean);
-        // Push to array if it exists else assign to new
-        if (key === 'outputFormat') {
-          if (!valuesArray.every((format) => ['csv', 'json', 'di'].includes(format))) {
-            throw new Error(chalk.red('Invalid output format passed. supports `csv`, `json` and `di` only'));
-          } else if (
-            valuesArray.includes('di') &&
-            (configObject['count'] > 1000 ||
-              configObject['sObjects'].some(
-                (obj: { [x: string]: { count: number } }) => obj[Object.keys(obj)[0]]?.count > 1000
-              ))
-          ) {
-            throw new Error(
-              chalk.red('All count values should be within 1-1000 to add DI-Direct Insertion in template')
-            );
-          }
-        }
-
-        if (Array.isArray(configObject[key])) {
-          valuesArray.forEach((item: string) => {
-            if (item && !configObject[key].includes(item)) {
-              configObject[key].push(item);
+      switch (key) {
+        case 'namespaceToExclude':
+        case 'outputFormat':
+        case 'fieldsToExclude':
+          if (typeof value === 'string') {
+            const valuesArray = value
+              .toLowerCase()
+              .split(/[\s,]+/)
+              .filter(Boolean);
+            if (key === 'outputFormat' && !valuesArray.every((format) => ['csv', 'json', 'di'].includes(format))) {
+              throw new Error(chalk.red('Invalid output format passed. supports `csv`, `json` and `di` only'));
             }
-          });
-        } else {
-          configObject[key] = valuesArray;
-        }
 
-        log(`Updated '${key}' to: ${configObject[key].join(', ')}`);
-      } else {
-        if (key === 'language' && value !== 'en' && value !== 'jp') {
-          throw new Error('Invalid language input. supports `en` or `jp` only');
-        }
+            if (Array.isArray(configObject[key])) {
+              valuesArray.forEach((item: string) => {
+                if (item && !configObject[key].includes(item)) {
+                  configObject[key].push(item);
+                }
+              });
+            } else {
+              configObject[key] = valuesArray;
+            }
+            log(`Updated '${key}' to: ${configObject[key].join(', ')}`);
+          }
+          break;
 
-        if (
-          key === 'count' &&
-          ((value as number) < 1 || ((value as number) > 1000 && config.outputFormat.includes('di')))
-        ) {
-          throw new Error(
-            'Invalid input. Please enter a Value between 1-1000 for DI and for CSV and JSON value greater than 0'
-          );
-        }
+        case 'fieldsToConsider':
+          if (typeof value === 'string') {
+            const updatedConfig = handleFieldsToConsider(configObject, value);
+            configObject.fieldsToConsider = updatedConfig.fieldsToConsider;
+            log(`Updated 'fieldsToConsider' to: ${JSON.stringify(updatedConfig.fieldsToConsider)}`);
+          }
+          break;
 
-        configObject[key] = value;
-        log(`Setting '${key}' to: ${configObject[key]}`);
+        default:
+          if (key === 'language' && value !== 'en' && value !== 'jp') {
+            throw new Error('Invalid language input. supports `en` or `jp` only');
+          }
+
+          if (key === 'pickLeftFields') {
+            console.log('14433334', configObject[key]);
+            configObject[key] = false;
+
+            // configObject[key] = !configObject[key];
+            console.log('144444', configObject[key]);
+          }
+          configObject[key] = value;
+          log(`Setting '${key}' to: ${configObject[key]}`);
+          break;
       }
     } else if (!['sObject', 'templateName'].includes(key)) {
-      log(chalk.yellow(`Skipped: '${key}' flag can not be passed in the current command`));
+      log(chalk.yellow(`Skipped: '${key}' flag cannot be passed in the current command`));
     }
   }
 }
+
 export const templateAddFlags = {
   sObject: Flags.string({
     char: 's',
@@ -198,6 +200,12 @@ export const templateAddFlags = {
     summary: messages.getMessage('flags.fieldsToConsider.summary'),
     description: messages.getMessage('flags.fieldsToConsider.description'),
     char: 'i',
+    required: false,
+  }),
+  pickLeftFields: Flags.boolean({
+    summary: messages.getMessage('flags.pickLeftFields.summary'),
+    description: messages.getMessage('flags.pickLeftFields.description'),
+    char: 'p',
     required: false,
   }),
 };
@@ -263,7 +271,7 @@ export default class TemplateAdd extends SfCommand<void> {
         }
         const configFileForSobject: typeSObjectSettingsMap = objectConfig[objectName];
 
-        allowedFlags = ['fieldsToExclude', 'language', 'count'];
+        allowedFlags = ['fieldsToExclude', 'language', 'count', 'pickLeftFields', 'fieldsToConsider'];
         updateOrInitializeConfig(configFileForSobject, flags, allowedFlags, this.log.bind(this));
       } else {
         const configFile: templateSchema = config;
@@ -271,7 +279,6 @@ export default class TemplateAdd extends SfCommand<void> {
         updateOrInitializeConfig(configFile, flags, allowedFlags, this.log.bind(this));
       }
 
-      // updateOrInitializeConfig(configFile, flags, allowedFlags, this.log.bind(this));
       fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8');
       this.log(chalk.green(`Success: Configuration updated in ${configFilePath}`));
     } catch (error) {

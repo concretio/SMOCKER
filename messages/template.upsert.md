@@ -60,11 +60,19 @@ Use `--fieldsToExclude` or `-e` to exclude specific fields from test data genera
 
 # flags.fieldsToConsider.summary
 
-Specify object fields to exclude from test data generation.
+Specify object fields to consider(also accepts value(s)) for test data generation.
 
 # flags.fieldsToConsider.description
 
-Use `--fieldsToExclude` or `-e` to exclude specific fields from test data generation for a given object. This setting applies only at the object level and cannot be defined at template level.
+Use `--fieldsToExclude` or `-i` to consider specific fields(also accepts value(s)) for test data generation for a given object. This setting applies only at the object level and cannot be defined at template level.
+
+# flags.pickLeftFields.summary
+
+The pickLeftFields flag determines which object fields are included in test data generation.
+
+# flags.pickLeftFields.description
+
+Use `--pickLeftFields` or `-p` to specify fields for test data generation. Set to false to include only fieldsToConsider. Set to true to include all fields except those in fieldsToExclude. This setting applies only at the object level and cannot be defined at template level.
 
 # Examples
 
