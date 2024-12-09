@@ -204,7 +204,7 @@ function handleFieldsToExclude(flags: flagObj, jsonData: templateSchema, updated
   }
   return updatedJsonData;
 }
-function validateInput(flags: flagObj, jsonData: templateSchema): templateSchema {
+function checkValidObject(flags: flagObj, jsonData: templateSchema): void {
   let concernedObject;
   if (Object.keys(flags).includes('sObject') && ((Object.keys(flags).includes('fieldsToExclude') || Object.keys(flags).includes('language') || Object.keys(flags).includes('fieldsToConsider') || Object.keys(flags).includes('count')))) {
     const sObjectName = (flags.sObject as string).toLowerCase();
@@ -213,6 +213,9 @@ function validateInput(flags: flagObj, jsonData: templateSchema): templateSchema
       throw new Error(`The specified sObject '${sObjectName}' does not exist in the data template file.`);
     }
   }
+}
+function validateInput(flags: flagObj, jsonData: templateSchema): templateSchema {
+  checkValidObject(flags, jsonData);
   let updatedJsonData;
   for (const [key] of Object.entries(flags)) {
     switch (key) {
