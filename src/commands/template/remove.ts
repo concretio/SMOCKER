@@ -49,7 +49,6 @@ function deleteSObjectField(jsonData: templateSchema, sObjectName: string, field
   if (sObject?.[sObjectName]) {
     if (Object.prototype.hasOwnProperty.call(sObject[sObjectName], fieldName)) {
       logRemoveMessage(fieldName, sObjectName);
-      // console.log(`Removing '${fieldName}' from the sobject ${sObjectName} settings.`);
       delete sObject[sObjectName][fieldName as keyof typeSObjectSettingsMap];
     } else {
       throw new Error(`The specified flag '${fieldName}' does not exist in the '${sObjectName}' sObject.`);
@@ -63,7 +62,7 @@ function deleteSObjectField(jsonData: templateSchema, sObjectName: string, field
 function DeletesObject(jsonData: templateSchema, sObjectNames: string[]): templateSchema {
   sObjectNames.map((sObjectName) => {
     const sObjectIndex = jsonData.sObjects.findIndex((obj) =>
-      Object.prototype.hasOwnProperty.call(obj, sObjectName.toLocaleLowerCase())
+      Object.keys(obj).some((key) => key.toLocaleLowerCase() === sObjectName.toLocaleLowerCase())
     );
     if (sObjectIndex === -1) {
       throw new Error(`The specified sObject '${sObjectName}' does not exist in the data template file.`);
@@ -219,20 +218,19 @@ function validateInput(flags: flagObj, jsonData: templateSchema): templateSchema
       case 'count':
         updatedJsonData = deleteSObjectField(jsonData, (flags.sObject as string).toLowerCase(), key);
         break;
-      case 'outputFormat':
-        if (Array.isArray(flags.outputFormat)) {
-          updatedJsonData = DeleteArrayValue(jsonData, 'outputFormat', parseInput(flags.outputFormat));
+
+      case 'namespaceToExclude':
+      case 'outputFormat': {
+        const fieldValues = (key === 'outputFormat') ? flags.outputFormat : flags.namespaceToExclude;
+        if (Array.isArray(fieldValues)) {
+          updatedJsonData = DeleteArrayValue(jsonData, key, parseInput(fieldValues));
         }
         break;
+      }
       case 'sObject':
         if (Object.keys(flags).length === 2 && flags.sObject) {
           const sObjectNames = parseInput([flags.sObject]);
           updatedJsonData = DeletesObject(jsonData, sObjectNames);
-        }
-        break;
-      case 'namespaceToExclude':
-        if (Array.isArray(flags.namespaceToExclude)) {
-          updatedJsonData = DeleteArrayValue(jsonData, 'namespaceToExclude', parseInput(flags.namespaceToExclude));
         }
         break;
       case 'fieldsToConsider':
