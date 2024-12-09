@@ -49,6 +49,7 @@ function handleDirStruct(): string {
     throw new Error(`Failed to create 'data_gen' directory structure on path ${cwd}`);
   }
 }
+let sigintListenerAdded = false;
 
 async function runMultiSelectPrompt(): Promise<string[]> {
   try {
@@ -62,10 +63,13 @@ async function runMultiSelectPrompt(): Promise<string[]> {
       { name: 'CSV', message: 'CSV', value: 'csv' },
     ];
     // Listen for Ctrl+C and terminate the CLI
-    process.on('SIGINT', () => {
-      console.log('\nCLI terminated by the user.');
-      process.exit(0);
-    });
+    if (!sigintListenerAdded) {
+      process.on('SIGINT', () => {
+        console.log('\nCLI terminated by the user.');
+        process.exit(0);
+      });
+      sigintListenerAdded = true;
+    }
 
     const answers = await Enquirer.prompt<Answers>({
       type: 'multiselect',
@@ -95,10 +99,14 @@ async function runSelectPrompt(
       choices: string;
     };
     // Listen for Ctrl+C and terminate the CLI
-    process.on('SIGINT', () => {
-      console.log('\nCLI terminated by the user.');
-      process.exit(0);
-    });
+    if (!sigintListenerAdded) {
+      process.on('SIGINT', () => {
+        console.log('\nCLI terminated by the user.');
+        process.exit(0);
+      });
+      sigintListenerAdded = true;
+    }
+
     const answers = await Enquirer.prompt<Answers>({
       type: 'select',
       name: 'choices',
