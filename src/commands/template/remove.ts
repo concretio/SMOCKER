@@ -21,6 +21,10 @@ export type templateSchema = {
   count: number;
   sObjects: Array<{ [key: string]: typeSObjectSettingsMap }>;
 };
+export type namespaceAndOutputSchema = {
+  namespaceToExclude: string[];
+  outputFormat: string[];
+};
 export type flagObj = {
   templateName: string;
   namespaceToExclude?: string[];
@@ -85,39 +89,36 @@ function parseInput(input: string[]): string[] {
 
 function DeleteArrayValue(
   jsonData: templateSchema,
-  fieldName: keyof templateSchema,
+  fieldName: keyof namespaceAndOutputSchema,
   fieldValues: string[]
 ): templateSchema {
   const updatedJsonData = { ...jsonData };
+  if (Object.prototype.hasOwnProperty.call(jsonData, fieldName)) {
+    const myArray: string[] = jsonData[fieldName];
 
-  if (fieldName === 'namespaceToExclude' || fieldName === 'outputFormat') {
-    if (Object.prototype.hasOwnProperty.call(jsonData, fieldName)) {
-      const myArray: string[] = jsonData[fieldName];
-
-      const valuesNotInJSON: string[] = fieldValues.filter(
-        (item) => !myArray.map((str) => str.toLowerCase()).includes(item.toLowerCase())
-      );
-      if (valuesNotInJSON.length > 0) {
-        throw new Error(`Values '${valuesNotInJSON.join(', ')}' do not exist in the ${fieldName}. `);
-      }
-      if (Array.isArray(myArray)) {
-        const updatedArray: string[] = myArray.filter(
-          (item): item is string =>
-            typeof item === 'string' && !fieldValues.map((value) => value.toLowerCase()).includes(item.toLowerCase())
-        );
-
-        updatedJsonData[fieldName] = updatedArray;
-
-        if (fieldName === 'outputFormat' && updatedArray.length === 0) {
-          throw new Error(
-            "Error: All the values from 'output-format' cannot be deleted! You must leave at least one value."
-          );
-        }
-        logRemoveMessage(fieldValues.join(', '), fieldName);
-      }
-    } else {
-      throw error(`${fieldName} does not exist in the data template.`);
+    const valuesNotInJSON: string[] = fieldValues.filter(
+      (item) => !myArray.map((str) => str.toLowerCase()).includes(item.toLowerCase())
+    );
+    if (valuesNotInJSON.length > 0) {
+      throw new Error(`Values '${valuesNotInJSON.join(', ')}' do not exist in the ${fieldName}. `);
     }
+    if (Array.isArray(myArray)) {
+      const updatedArray: string[] = myArray.filter(
+        (item): item is string =>
+          typeof item === 'string' && !fieldValues.map((value) => value.toLowerCase()).includes(item.toLowerCase())
+      );
+
+      updatedJsonData[fieldName] = updatedArray;
+
+      if (fieldName === 'outputFormat' && updatedArray.length === 0) {
+        throw new Error(
+          "Error: All the values from 'output-format' cannot be deleted! You must leave at least one value."
+        );
+      }
+      logRemoveMessage(fieldValues.join(', '), fieldName);
+    }
+  } else {
+    throw error(`${fieldName} does not exist in the data template.`);
   }
   return updatedJsonData;
 }
@@ -197,11 +198,17 @@ function validateFlags(flags: string[]): boolean {
   }
   return true;
 }
+function handleFieldsToExclude(flags: flagObj, jsonData: templateSchema, updatedJsonData: templateSchema): templateSchema {
+  if ('sObject' in flags && 'fieldsToExclude' in flags && Array.isArray(flags.fieldsToExclude)) {
+    updatedJsonData = DeleteSObjectArrayValue(jsonData, (flags.sObject as string).toLowerCase(), parseInput(flags.fieldsToExclude));
+  }
+  return updatedJsonData;
+}
 function validateInput(flags: flagObj, jsonData: templateSchema): templateSchema {
   let concernedObject;
   if (Object.keys(flags).includes('sObject') && ((Object.keys(flags).includes('fieldsToExclude') || Object.keys(flags).includes('language') || Object.keys(flags).includes('fieldsToConsider') || Object.keys(flags).includes('count')))) {
     const sObjectName = (flags.sObject as string).toLowerCase();
-    concernedObject = jsonData.sObjects.find((obj) => Object.prototype.hasOwnProperty.call(obj, sObjectName));
+    concernedObject = jsonData.sObjects.find((obj) => Object.keys(obj).some(key => key.toLowerCase() === sObjectName));
     if (!concernedObject || concernedObject === undefined) {
       throw new Error(`The specified sObject '${sObjectName}' does not exist in the data template file.`);
     }
@@ -210,9 +217,7 @@ function validateInput(flags: flagObj, jsonData: templateSchema): templateSchema
   for (const [key] of Object.entries(flags)) {
     switch (key) {
       case 'fieldsToExclude':
-        if ('sObject' in flags && 'fieldsToExclude' in flags && Array.isArray(flags.fieldsToExclude)) {
-          updatedJsonData = DeleteSObjectArrayValue(jsonData, (flags.sObject as string).toLowerCase(), parseInput(flags.fieldsToExclude));
-        }
+        updatedJsonData = updatedJsonData !== undefined ? handleFieldsToExclude(flags, jsonData, updatedJsonData) : updatedJsonData;
         break;
       case 'language':
       case 'count':
@@ -228,15 +233,10 @@ function validateInput(flags: flagObj, jsonData: templateSchema): templateSchema
         break;
       }
       case 'sObject':
-        if (Object.keys(flags).length === 2 && flags.sObject) {
-          const sObjectNames = parseInput([flags.sObject]);
-          updatedJsonData = DeletesObject(jsonData, sObjectNames);
-        }
+        updatedJsonData = Object.keys(flags).length === 2 && flags.sObject ? DeletesObject(jsonData, parseInput([flags.sObject])) : updatedJsonData;
         break;
       case 'fieldsToConsider':
-        if (flags.fieldsToConsider) {
-          updatedJsonData = DeleteFieldsToConsiderValues(jsonData, (flags.sObject as string).toLowerCase(), parseInput(flags.fieldsToConsider));
-        }
+        updatedJsonData = flags.fieldsToConsider ? DeleteFieldsToConsiderValues(jsonData, (flags.sObject as string).toLowerCase(), parseInput(flags.fieldsToConsider)) : updatedJsonData;
         break;
       default:
         break;
