@@ -49,7 +49,6 @@ function handleDirStruct(): string {
     throw new Error(`Failed to create 'data_gen' directory structure on path ${cwd}`);
   }
 }
-let sigintListenerAdded = false;
 
 async function runMultiSelectPrompt(): Promise<string[]> {
   try {
@@ -63,12 +62,10 @@ async function runMultiSelectPrompt(): Promise<string[]> {
       { name: 'CSV', message: 'CSV', value: 'csv' },
     ];
     // Listen for Ctrl+C and terminate the CLI
-    if (!sigintListenerAdded) {
-      process.on('SIGINT', () => {
-        process.exit(0);
-      });
-      sigintListenerAdded = true;
-    }
+    process.on('SIGINT', () => {
+      console.log('\nCLI terminated by the user.');
+      process.exit(0);
+    });
 
     const answers = await Enquirer.prompt<Answers>({
       type: 'multiselect',
@@ -80,6 +77,8 @@ async function runMultiSelectPrompt(): Promise<string[]> {
     return answers.choices;
   } catch (error) {
     if (error === '') {
+      // Handle Ctrl+C gracefully
+      console.log('\nCLI terminated by the user.');
       process.exit(0);
     }
     console.error('Error:', error);
@@ -96,13 +95,10 @@ async function runSelectPrompt(
       choices: string;
     };
     // Listen for Ctrl+C and terminate the CLI
-    if (!sigintListenerAdded) {
-      process.on('SIGINT', () => {
-        process.exit(0);
-      });
-      sigintListenerAdded = true;
-    }
-
+    process.on('SIGINT', () => {
+      console.log('\nCLI terminated by the user.');
+      process.exit(0);
+    });
     const answers = await Enquirer.prompt<Answers>({
       type: 'select',
       name: 'choices',
@@ -113,6 +109,8 @@ async function runSelectPrompt(
     return answers.choices;
   } catch (error) {
     if (error === '') {
+      // Handle Ctrl+C gracefully
+      console.log('\nCLI terminated by the user.');
       process.exit(0);
     }
     console.error('Error:', error);
