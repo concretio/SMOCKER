@@ -2,11 +2,9 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as dotenv from 'dotenv';
-import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
+import { SfCommand, Flags , Spinner} from '@salesforce/sf-plugins-core';
 import { Messages, Connection, Org } from '@salesforce/core';
 import chalk from 'chalk';
-import { loading, LoaderActions } from 'cli-loading-animation';
-import Spinner from 'cli-spinners';
 import {
   TemplateValidateResult,
   sObjectSchemaType,
@@ -50,15 +48,10 @@ export async function getConnectionWithSalesforce(): Promise<Connection> {
 
 export async function validateConfigJson(connection: Connection, configPath: string): Promise<void> {
   try {
-    const actions: LoaderActions = loading('\nPlease wait!! while we validate Objects and Fields from connected org.', {
-      clearOnEnd: true,
-      spinner: Spinner.bouncingBar,
-    });
+    const spinner = new Spinner(true);
+     
 
-    const start: () => void = () => actions.start();
-    const stop: () => void = () => actions.stop();
-
-    start();
+    spinner.start('Please wait!! while we validate Objects and Fields');
     const config: templateSchema = JSON.parse(fs.readFileSync(configPath, 'utf8')) as templateSchema;
 
     const invalidObjects: string[] = [];
@@ -100,8 +93,7 @@ export async function validateConfigJson(connection: Connection, configPath: str
         invalidFieldsMap[sObjectName] = invalidFields;
       }
     }
-    stop();
-
+    spinner.stop('');
     if (invalidObjects.length > 0) {
       console.warn(
         chalk.magenta(`Warning: SObjects do not exist or cannot be accessed:\n -> ${invalidObjects.join(', ')}`)
