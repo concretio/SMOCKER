@@ -52,7 +52,7 @@ function deleteSObjectField(jsonData: templateSchema, sObjectName: string, field
 
   if (sObject?.[sObjectName]) {
     if (Object.prototype.hasOwnProperty.call(sObject[sObjectName], fieldName)) {
-      logRemoveMessage(fieldName, sObjectName);
+      console.log(`Removing '${fieldName}' from the sObject '${sObjectName}' settings.`);
       delete sObject[sObjectName][fieldName as keyof typeSObjectSettingsMap];
     } else {
       throw new Error(`The specified flag '${fieldName}' does not exist in the '${sObjectName}' sObject.`);
@@ -115,7 +115,7 @@ function DeleteArrayValue(
           "Error: All the values from 'output-format' cannot be deleted! You must leave at least one value."
         );
       }
-      logRemoveMessage(fieldValues.join(', '), fieldName);
+      console.log(`Removing '${fieldValues.join(', ')}' from the '${fieldName}' settings.`);
     }
   } else {
     throw error(`${fieldName} does not exist in the data template.`);
@@ -129,9 +129,9 @@ function valuesDoesNotExistError(valuesNotInJSON: string[], flagName: string, sO
     )}' do not exist in the '${flagName}' of sobject '${sObjectName}' settings `
   );
 }
-function logRemoveMessage(fieldValues: string, sObjectName: string): void {
+function logRemoveMessage(fieldValues: string, sObjectName: string, fieldName: string): void {
   console.log(
-    `Removing '${fieldValues}' from the 'fieldsToExclude' of sobject '${sObjectName}' settings.`
+    `Removing '${fieldValues}' from the '${fieldName}' of sObject '${sObjectName}' settings.`
   );
 }
 function DeleteSObjectArrayValue(jsonData: templateSchema, sObjectName: string, fieldValues: string[]): templateSchema {
@@ -147,7 +147,7 @@ function DeleteSObjectArrayValue(jsonData: templateSchema, sObjectName: string, 
     const updatedArray = existingValues.filter(
       (item) => !fieldValues.map((val) => val.toLowerCase()).includes(item.toLowerCase())
     );
-    logRemoveMessage(fieldValues.join(', '), sObjectName);
+    logRemoveMessage(fieldValues.join(', '), sObjectName, 'fieldsToExclude');
     concernedObject[sObjectName]['fieldsToExclude'] = updatedArray;
   } else if (existingValues === undefined) {
     throw new Error(`The 'fields-to-exclude' does not exist for sobject '${sObjectName}' settings.`);
@@ -169,7 +169,7 @@ function DeleteFieldsToConsiderValues(jsonData: templateSchema, sObjectName: str
         !values.map(item => item.toLowerCase()).includes(key.toLowerCase())
       )
     );
-    logRemoveMessage(values.join(', '), sObjectName);
+    logRemoveMessage(values.join(', '), sObjectName, 'fieldsToConsider');
     concernedObject[sObjectName]['fieldsToConsider'] = updatedObj;
   } else if (existingObj === undefined) {
     throw new Error(`The 'fieldsToConsider' does not exist for sobject '${sObjectName}' settings.`);
@@ -215,7 +215,6 @@ function validateInput(flags: flagObj, jsonData: templateSchema): templateSchema
     switch (key) {
       case 'fieldsToExclude':
         if ('sObject' in flags && 'fieldsToExclude' in flags && Array.isArray(flags.fieldsToExclude)) {
-          console.log('upd json:', updatedJsonData);
           updatedJsonData = DeleteSObjectArrayValue(updatedJsonData, (flags.sObject as string).toLowerCase(), parseInput(flags.fieldsToExclude));
         }
         break;
