@@ -49,6 +49,7 @@ function handleDirStruct(): string {
     throw new Error(`Failed to create 'data_gen' directory structure on path ${cwd}`);
   }
 }
+let sigintListenerAdded = false;
 
 async function runMultiSelectPrompt(): Promise<string[]> {
   try {
@@ -62,10 +63,12 @@ async function runMultiSelectPrompt(): Promise<string[]> {
       { name: 'CSV', message: 'CSV', value: 'csv' },
     ];
     // Listen for Ctrl+C and terminate the CLI
-    process.on('SIGINT', () => {
-      console.log('\nCLI terminated by the user.');
-      process.exit(0);
-    });
+    if (!sigintListenerAdded) {
+      process.on('SIGINT', () => {
+        process.exit(0);
+      });
+      sigintListenerAdded = true;
+    }
 
     const answers = await Enquirer.prompt<Answers>({
       type: 'multiselect',
@@ -77,8 +80,6 @@ async function runMultiSelectPrompt(): Promise<string[]> {
     return answers.choices;
   } catch (error) {
     if (error === '') {
-      // Handle Ctrl+C gracefully
-      console.log('\nCLI terminated by the user.');
       process.exit(0);
     }
     console.error('Error:', error);
@@ -95,10 +96,13 @@ async function runSelectPrompt(
       choices: string;
     };
     // Listen for Ctrl+C and terminate the CLI
-    process.on('SIGINT', () => {
-      console.log('\nCLI terminated by the user.');
-      process.exit(0);
-    });
+    if (!sigintListenerAdded) {
+      process.on('SIGINT', () => {
+        process.exit(0);
+      });
+      sigintListenerAdded = true;
+    }
+
     const answers = await Enquirer.prompt<Answers>({
       type: 'select',
       name: 'choices',
@@ -109,8 +113,6 @@ async function runSelectPrompt(
     return answers.choices;
   } catch (error) {
     if (error === '') {
-      // Handle Ctrl+C gracefully
-      console.log('\nCLI terminated by the user.');
       process.exit(0);
     }
     console.error('Error:', error);
@@ -267,16 +269,16 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
     /* Namespace to exclude */
     const namespaceExcludeValue = await askQuestion(
       'Enter namespace(s) to exclude' +
-      chalk.dim(
-        ' [Fields from these namespace(s) will be ignored. (comma-separated: "mynamespaceA", "mynamespaceB")]'
-      ),
+        chalk.dim(
+          ' [Fields from these namespace(s) will be ignored. (comma-separated: "mynamespaceA", "mynamespaceB")]'
+        ),
       ''
     );
     const namespaceToExclude = namespaceExcludeValue
       ? namespaceExcludeValue
-        .toLowerCase()
-        .split(/[\s,]+/)
-        .filter(Boolean)
+          .toLowerCase()
+          .split(/[\s,]+/)
+          .filter(Boolean)
       : [];
 
     // const validFormats = new Set(['csv', 'json', 'di']);
@@ -383,7 +385,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       if (!objectsToConfigure.includes(sObjectName)) {
         const addObjectIfProvidedIsMissingFromArray = await askQuestion(
           chalk.yellow(`Warning: '${sObjectName}' is missing from the data template.`) +
-          chalk.white('\nDo you want to add? (Y/n)'),
+            chalk.white('\nDo you want to add? (Y/n)'),
           'n'
         );
         const addObject = addObjectIfProvidedIsMissingFromArray.toLowerCase();
@@ -403,8 +405,8 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
 
       const fieldsToExcludeInput = await askQuestion(
         chalk.white.bold(`[${sObjectName}]`) +
-        ' Provide fields(API names) to exclude ' +
-        chalk.dim('(comma-separated)'),
+          ' Provide fields(API names) to exclude ' +
+          chalk.dim('(comma-separated)'),
         ''
       );
       const fieldsToExclude: string[] = fieldsToExcludeInput
