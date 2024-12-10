@@ -5,7 +5,7 @@ describe('template upsert NUTs', () => {
   let session: TestSession;
 
   before(async () => {
-    session = await TestSession.create({ devhubAuthStrategy: 'NONE' });
+    session = await TestSession.create();
   });
 
   after(async () => {
