@@ -65,7 +65,6 @@ async function runMultiSelectPrompt(): Promise<string[]> {
     // Listen for Ctrl+C and terminate the CLI
     if (!sigintListenerAdded) {
       process.on('SIGINT', () => {
-        console.log('\nCLI terminated by the user.');
         process.exit(0);
       });
       sigintListenerAdded = true;
@@ -81,8 +80,6 @@ async function runMultiSelectPrompt(): Promise<string[]> {
     return answers.choices;
   } catch (error) {
     if (error === '') {
-      // Handle Ctrl+C gracefully
-      console.log('\nCLI terminated by the user.');
       process.exit(0);
     }
     console.error('Error:', error);
@@ -101,7 +98,6 @@ async function runSelectPrompt(
     // Listen for Ctrl+C and terminate the CLI
     if (!sigintListenerAdded) {
       process.on('SIGINT', () => {
-        console.log('\nCLI terminated by the user.');
         process.exit(0);
       });
       sigintListenerAdded = true;
@@ -117,8 +113,6 @@ async function runSelectPrompt(
     return answers.choices;
   } catch (error) {
     if (error === '') {
-      // Handle Ctrl+C gracefully
-      console.log('\nCLI terminated by the user.');
       process.exit(0);
     }
     console.error('Error:', error);
