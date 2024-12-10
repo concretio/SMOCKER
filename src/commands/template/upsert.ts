@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
 /* eslint-disable no-param-reassign */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -9,6 +8,7 @@ import path from 'node:path';
 
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
+import { error } from '@oclif/core/errors';
 import chalk from 'chalk';
 import { askQuestion } from './init.js';
 
@@ -69,6 +69,7 @@ export function handleFieldsToConsider(sObjectConfig: typeSObjectSettingsMap, in
         .slice(1, -1)
         .split(',')
         .map((v) => v.trim());
+
       fieldsToConsider[key] = fieldValues;
     } else {
       fieldsToConsider[key] = [];
@@ -95,6 +96,8 @@ export function updateOrInitializeConfig(
   allowedFlags: string[],
   log: (message: string) => void
 ): void {
+  console.log('allowed flags: ', allowedFlags);
+
   for (const [key, value] of Object.entries(flags)) {
     if (allowedFlags.includes(key) && value !== undefined) {
       switch (key) {
@@ -125,9 +128,18 @@ export function updateOrInitializeConfig(
 
         case 'fieldsToConsider':
           if (typeof value === 'string') {
-            const updatedConfig = handleFieldsToConsider(configObject, value);
+            const updatedConfig = handleFieldsToConsider(configObject as typeSObjectSettingsMap, value);
             configObject.fieldsToConsider = updatedConfig.fieldsToConsider;
             log(`Updated 'fieldsToConsider' to: ${JSON.stringify(updatedConfig.fieldsToConsider)}`);
+          }
+          break;
+
+        case 'pickLeftFields':
+          if (typeof value === 'boolean') {
+            if (configObject[key] !== value) {
+              configObject[key] = !value;
+              log(`Updated '${key}' to: ${configObject[key]}`);
+            }
           }
           break;
 
@@ -136,13 +148,6 @@ export function updateOrInitializeConfig(
             throw new Error('Invalid language input. supports `en` or `jp` only');
           }
 
-          if (key === 'pickLeftFields') {
-            console.log('14433334', configObject[key]);
-            configObject[key] = false;
-
-            // configObject[key] = !configObject[key];
-            console.log('144444', configObject[key]);
-          }
           configObject[key] = value;
           log(`Setting '${key}' to: ${configObject[key]}`);
           break;
@@ -209,6 +214,22 @@ export const templateAddFlags = {
     required: false,
   }),
 };
+/* checking valid directory structure for json data template */
+function getTemplateJsonData(templateName: string): string {
+  const filename = templateName.endsWith('.json') ? templateName : `${templateName}.json`;
+  if (!filename) {
+    throw error('Error: You must specify a filename using the --template-name flag.');
+  }
+  const templateDirPath = path.join(process.cwd(), 'data_gen/templates');
+  if (!fs.existsSync(templateDirPath)) {
+    throw error(`Template directory does not exist at ${templateDirPath}. Please initialize the setup first.`);
+  }
+  const configFilePath = path.join(templateDirPath, filename);
+  if (!fs.existsSync(configFilePath)) {
+    throw error(`Data Template file not found at ${configFilePath}`);
+  }
+  return configFilePath;
+}
 
 let config: templateSchema;
 export default class TemplateAdd extends SfCommand<void> {
@@ -221,68 +242,43 @@ export default class TemplateAdd extends SfCommand<void> {
   public async run(): Promise<void> {
     const { flags } = await this.parse(TemplateAdd);
 
-    let filename = flags.templateName;
-    if (!filename) {
-      this.error('Error: You must specify a filename using the --templateName flag.');
-    } else if (!filename.endsWith('.json')) {
-      filename += '.json';
-    }
+    const configFilePath = getTemplateJsonData(flags.templateName);
+    config = JSON.parse(fs.readFileSync(configFilePath, 'utf8')) as templateSchema;
 
     const objectName = flags.sObject ? flags.sObject.toLowerCase() : undefined;
 
-    try {
-      // Variable Declarations and validatons
-      const cwd = process.cwd();
-      const dataGenDirPath = path.join(cwd, 'data_gen');
+    let allowedFlags = [];
 
-      const templateDirPath = path.join(dataGenDirPath, 'templates');
-      if (!fs.existsSync(templateDirPath)) {
-        this.error(`Template directory does not exist at ${templateDirPath}. Please initialize the setup first.`);
+    if (objectName) {
+      this.log(chalk.magenta.bold(`Working on the object level settings for ${objectName}`));
+      if (!Array.isArray(config.sObjects)) {
+        config.sObjects = [];
       }
-
-      const configFilePath = path.join(templateDirPath, filename);
-      if (!fs.existsSync(configFilePath)) {
-        this.error(`Config file not found at ${configFilePath}`);
-      }
-
-      config = JSON.parse(fs.readFileSync(configFilePath, 'utf8')) as templateSchema;
-      let allowedFlags = [];
-
-      // Checking if Object Flag is passed or not
-
-      if (objectName) {
-        this.log(chalk.magenta.bold(`Working on the object level settings for ${objectName}`));
-        if (!Array.isArray(config.sObjects)) {
-          config.sObjects = [];
+      let objectConfig = config.sObjects.find(
+        (obj: SObjectItem): boolean => Object.keys(obj)[0] === objectName
+      ) as SObjectItem;
+      if (!objectConfig) {
+        const addToTemplate = await askQuestion(
+          chalk.yellow(`'${objectName}' does not exists in data template! Do you want to add?`) + chalk.dim('(Y/n)')
+        );
+        if (addToTemplate.toLowerCase() === 'yes' || addToTemplate.toLowerCase() === 'y') {
+          objectConfig = { [objectName]: {} };
+          config.sObjects.push(objectConfig);
+        } else {
+          return;
         }
-        let objectConfig = config.sObjects.find(
-          (obj: SObjectItem): boolean => Object.keys(obj)[0] === objectName
-        ) as SObjectItem;
-        if (!objectConfig) {
-          const addToTemplate = await askQuestion(
-            chalk.yellow(`'${objectName}' does not exists in data template! Do you want to add?`) + chalk.dim('(Y/n)')
-          );
-          if (addToTemplate.toLowerCase() === 'yes' || addToTemplate.toLowerCase() === 'y') {
-            objectConfig = { [objectName]: {} };
-            config.sObjects.push(objectConfig);
-          } else {
-            return;
-          }
-        }
-        const configFileForSobject: typeSObjectSettingsMap = objectConfig[objectName];
-
-        allowedFlags = ['fieldsToExclude', 'language', 'count', 'pickLeftFields', 'fieldsToConsider'];
-        updateOrInitializeConfig(configFileForSobject, flags, allowedFlags, this.log.bind(this));
-      } else {
-        const configFile: templateSchema = config;
-        allowedFlags = ['outputFormat', 'namespaceToExclude', 'language', 'count'];
-        updateOrInitializeConfig(configFile, flags, allowedFlags, this.log.bind(this));
       }
+      const configFileForSobject: typeSObjectSettingsMap = objectConfig[objectName];
 
-      fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8');
-      this.log(chalk.green(`Success: Configuration updated in ${configFilePath}`));
-    } catch (error) {
-      this.error(`Process halted: ${(error as Error).message}`);
+      allowedFlags = ['fieldsToExclude', 'language', 'count', 'pickLeftFields', 'fieldsToConsider'];
+      updateOrInitializeConfig(configFileForSobject, flags, allowedFlags, this.log.bind(this));
+    } else {
+      const configFile: templateSchema = config;
+      allowedFlags = ['outputFormat', 'namespaceToExclude', 'language', 'count'];
+      updateOrInitializeConfig(configFile, flags, allowedFlags, this.log.bind(this));
     }
+
+    fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8');
+    this.log(chalk.green(`Success: Configuration updated in ${configFilePath}`));
   }
 }
