@@ -24,7 +24,7 @@ type typeSObjectSettingsMap = {
   fieldsToConsider?: fieldsToConsiderMap;
   count?: number;
   language?: string;
-  pickLeftField?: boolean;
+  pickLeftFields?: boolean;
 };
 
 type SObjectItem = { [key: string]: typeSObjectSettingsMap };
@@ -96,8 +96,7 @@ export function updateOrInitializeConfig(
   allowedFlags: string[],
   log: (message: string) => void
 ): void {
-  console.log('allowed flags: ', allowedFlags);
-
+  let updatedConfig;
   for (const [key, value] of Object.entries(flags)) {
     if (allowedFlags.includes(key) && value !== undefined) {
       switch (key) {
@@ -128,18 +127,16 @@ export function updateOrInitializeConfig(
 
         case 'fieldsToConsider':
           if (typeof value === 'string') {
-            const updatedConfig = handleFieldsToConsider(configObject as typeSObjectSettingsMap, value);
+            updatedConfig = handleFieldsToConsider(configObject as typeSObjectSettingsMap, value);
             configObject.fieldsToConsider = updatedConfig.fieldsToConsider;
             log(`Updated 'fieldsToConsider' to: ${JSON.stringify(updatedConfig.fieldsToConsider)}`);
           }
           break;
 
         case 'pickLeftFields':
-          if (typeof value === 'boolean') {
-            if (configObject[key] !== value) {
-              configObject[key] = !value;
-              log(`Updated '${key}' to: ${configObject[key]}`);
-            }
+          if (updatedConfig !== undefined) {
+            updatedConfig.pickLeftFields = updatedConfig.pickLeftFields ? false : true;
+            log(`Setting '${key}' to: ${configObject[key]}`);
           }
           break;
 
@@ -147,7 +144,6 @@ export function updateOrInitializeConfig(
           if (key === 'language' && value !== 'en' && value !== 'jp') {
             throw new Error('Invalid language input. supports `en` or `jp` only');
           }
-
           configObject[key] = value;
           log(`Setting '${key}' to: ${configObject[key]}`);
           break;
