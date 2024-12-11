@@ -284,14 +284,22 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
         insertResult.forEach((result: { id?: string; success: boolean; errors?: any[] }) => {
           if (result.success && result.id) {
             insertedIds.push(result.id);
-          } else if (result.errors) {
-            result.errors.forEach((error) => errorSet.add(error.message));
+          }
+          //  else if (result.errors) {
+          //   result.errors.forEach((error) => errorSet.add(error.message));
+          // }
+          else if (result.errors) {
+            result.errors.forEach((error) => {
+              const errorMessage = error?.message || JSON.stringify(error) || 'Unknown error';
+              errorSet.add(errorMessage);
+            });
           }
         });
-        this.log(chalk.green(`Records inserted for ${object}`));
-        
+        // this.log(chalk.green(`Records inserted for ${object}`));
+
         if (errorSet.size > 0) {
-          this.log(`\nFailed to insert ${errorSet.size} record(s) for '${object}' object with following error(s):`);
+         //  this.log(`\nFailed to insert ${errorSet.size} record(s) for '${object}' object with following error(s):`);
+          this.log(`\nFailed to insert ${insertResult.length - insertedIds.length} record(s) for '${object}' object with following error(s):`);
           errorSet.forEach((error) => this.log(`- ${error}`));
         }
         this.updateCreatedRecordIds(object, insertResult);
@@ -448,7 +456,7 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
        batch.execute(remainingRecords);
       await new Promise<void>((resolve, reject) => {
         batch.on('queue', () => {
-          batch.poll(1000 /* interval(ms) */, 30_000 /* timeout(ms) */);
+          batch.poll(500 /* interval(ms) */, 600_000 /* timeout(ms) */);
           const pollInterval = setInterval(() => {
             batch
               .check()
