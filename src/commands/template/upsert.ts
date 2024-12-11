@@ -8,6 +8,7 @@ import path from 'node:path';
 
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
+import { error } from '@oclif/core/errors';
 import chalk from 'chalk';
 import { askQuestion } from './init.js';
 
@@ -20,8 +21,10 @@ export type TemplateAddResult = {
 
 type typeSObjectSettingsMap = {
   fieldsToExclude?: string[];
+  fieldsToConsider?: fieldsToConsiderMap;
   count?: number;
   language?: string;
+  pickLeftFields?: boolean;
 };
 
 type SObjectItem = { [key: string]: typeSObjectSettingsMap };
@@ -42,73 +45,113 @@ type tempAddFlags = {
   namespaceToExclude?: string;
   outputFormat?: string;
   fieldsToExclude?: string;
+  fieldsToConsider?: string;
 };
+
+type fieldsToConsiderMap = {
+  [key: string]: string[] | string;
+};
+
+export function handleFieldsToConsider(sObjectConfig: typeSObjectSettingsMap, input: string): typeSObjectSettingsMap {
+  if (!sObjectConfig.fieldsToConsider) {
+    sObjectConfig.fieldsToConsider = {};
+  }
+
+  const fieldsToConsider: fieldsToConsiderMap = sObjectConfig.fieldsToConsider;
+
+  const regex = /([\w-]+):\s*(\[[^\]]*\])|([\w-]+)/g;
+  let match;
+  while ((match = regex.exec(input)) !== null) {
+    const key = (match[1] || match[3]).toLowerCase();
+    const value = match[2];
+    if (key && value) {
+      const fieldValues = value
+        .slice(1, -1)
+        .split(',')
+        .map((v) => v.trim());
+
+      const fieldValuesSet = new Set([...(fieldsToConsider[key] || []), ...fieldValues]);
+      fieldsToConsider[key] = Array.from(fieldValuesSet);
+    } else {
+      fieldsToConsider[key] = [];
+    }
+
+    if (key.startsWith('dp-')) {
+      if (value) {
+        const dpfieldValue = value.slice(1, -1).trim();
+        fieldsToConsider[key] = dpfieldValue;
+      } else {
+        fieldsToConsider[key] = '';
+      }
+    }
+  }
+
+  return sObjectConfig;
+}
+
 export function updateOrInitializeConfig(
   configObject: any,
   flags: tempAddFlags,
   allowedFlags: string[],
   log: (message: string) => void
 ): void {
-  const arrayFlags = ['namespaceToExclude', 'outputFormat', 'fieldsToExclude'];
-
+  let updatedConfig;
   for (const [key, value] of Object.entries(flags)) {
     if (allowedFlags.includes(key) && value !== undefined) {
-      // Checking if values need to be converted to an string[]
-      if (arrayFlags.includes(key) && typeof value === 'string') {
-        const valuesArray = value
-          .toLowerCase()
-          .split(/[\s,]+/)
-          .filter(Boolean);
-        // Push to array if it exists else assign to new
-        if (key === 'outputFormat') {
-          if (!valuesArray.every((format) => ['csv', 'json', 'di'].includes(format))) {
-            throw new Error(chalk.red('Invalid output format passed. supports `csv`, `json` and `di` only'));
-          } else if (
-            valuesArray.includes('di') &&
-            (configObject['count'] > 1000 ||
-              configObject['sObjects'].some(
-                (obj: { [x: string]: { count: number } }) => obj[Object.keys(obj)[0]]?.count > 1000
-              ))
-          ) {
-            throw new Error(
-              chalk.red('All count values should be within 1-1000 to add DI-Direct Insertion in template')
-            );
-          }
-        }
-
-        if (Array.isArray(configObject[key])) {
-          valuesArray.forEach((item: string) => {
-            if (item && !configObject[key].includes(item)) {
-              configObject[key].push(item);
+      switch (key) {
+        case 'namespaceToExclude':
+        case 'outputFormat':
+        case 'fieldsToExclude':
+          if (typeof value === 'string') {
+            const valuesArray = value
+              .toLowerCase()
+              .split(/[\s,]+/)
+              .filter(Boolean);
+            if (key === 'outputFormat' && !valuesArray.every((format) => ['csv', 'json', 'di'].includes(format))) {
+              throw new Error(chalk.red('Invalid output format passed. supports `csv`, `json` and `di` only'));
             }
-          });
-        } else {
-          configObject[key] = valuesArray;
-        }
 
-        log(`Updated '${key}' to: ${configObject[key].join(', ')}`);
-      } else {
-        if (key === 'language' && value !== 'en' && value !== 'jp') {
-          throw new Error('Invalid language input. supports `en` or `jp` only');
-        }
+            if (Array.isArray(configObject[key])) {
+              valuesArray.forEach((item: string) => {
+                if (item && !configObject[key].includes(item)) {
+                  configObject[key].push(item);
+                }
+              });
+            } else {
+              configObject[key] = valuesArray;
+            }
+            log(`Updated '${key}' to: ${configObject[key].join(', ')}`);
+          }
+          break;
 
-        if (
-          key === 'count' &&
-          ((value as number) < 1 || ((value as number) > 1000 && config.outputFormat.includes('di')))
-        ) {
-          throw new Error(
-            'Invalid input. Please enter a Value between 1-1000 for DI and for CSV and JSON value greater than 0'
-          );
-        }
+        case 'fieldsToConsider':
+          if (typeof value === 'string') {
+            updatedConfig = handleFieldsToConsider(configObject as typeSObjectSettingsMap, value);
+            log(`Updated 'fieldsToConsider' to: ${JSON.stringify(updatedConfig.fieldsToConsider)}`);
+          }
+          break;
 
-        configObject[key] = value;
-        log(`Setting '${key}' to: ${configObject[key]}`);
+        case 'pickLeftFields':
+          if (updatedConfig !== undefined) {
+            configObject.pickLeftFields = updatedConfig.pickLeftFields ? false : true;
+            log(`Setting '${key}' to: ${configObject[key]}`);
+          }
+          break;
+
+        default:
+          if (key === 'language' && value !== 'en' && value !== 'jp') {
+            throw new Error('Invalid language input. supports `en` or `jp` only');
+          }
+          configObject[key] = value;
+          log(`Setting '${key}' to: ${configObject[key]}`);
+          break;
       }
     } else if (!['sObject', 'templateName'].includes(key)) {
-      log(chalk.yellow(`Skipped: '${key}' flag can not be passed in the current command`));
+      log(chalk.yellow(`Skipped: '${key}' flag cannot be passed in the current command`));
     }
   }
 }
+
 export const templateAddFlags = {
   sObject: Flags.string({
     char: 's',
@@ -152,7 +195,35 @@ export const templateAddFlags = {
     description: messages.getMessage('flags.fieldsToExclude.description'),
     required: false,
   }),
+  fieldsToConsider: Flags.string({
+    summary: messages.getMessage('flags.fieldsToConsider.summary'),
+    description: messages.getMessage('flags.fieldsToConsider.description'),
+    char: 'i',
+    required: false,
+  }),
+  pickLeftFields: Flags.boolean({
+    summary: messages.getMessage('flags.pickLeftFields.summary'),
+    description: messages.getMessage('flags.pickLeftFields.description'),
+    char: 'p',
+    required: false,
+  }),
 };
+/* checking valid directory structure for json data template */
+function getTemplateJsonData(templateName: string): string {
+  const filename = templateName.endsWith('.json') ? templateName : `${templateName}.json`;
+  if (!filename) {
+    throw error('Error: You must specify a filename using the --template-name flag.');
+  }
+  const templateDirPath = path.join(process.cwd(), 'data_gen/templates');
+  if (!fs.existsSync(templateDirPath)) {
+    throw error(`Template directory does not exist at ${templateDirPath}. Please initialize the setup first.`);
+  }
+  const configFilePath = path.join(templateDirPath, filename);
+  if (!fs.existsSync(configFilePath)) {
+    throw error(`Data Template file not found at ${configFilePath}`);
+  }
+  return configFilePath;
+}
 
 let config: templateSchema;
 export default class TemplateAdd extends SfCommand<void> {
@@ -165,68 +236,43 @@ export default class TemplateAdd extends SfCommand<void> {
   public async run(): Promise<void> {
     const { flags } = await this.parse(TemplateAdd);
 
-    let filename = flags.templateName;
-    if (!filename) {
-      this.error('Error: You must specify a filename using the --templateName flag.');
-    } else if (!filename.endsWith('.json')) {
-      filename += '.json';
-    }
+    const configFilePath = getTemplateJsonData(flags.templateName);
+    config = JSON.parse(fs.readFileSync(configFilePath, 'utf8')) as templateSchema;
 
     const objectName = flags.sObject ? flags.sObject.toLowerCase() : undefined;
 
-    try {
-      // Variable Declarations and validatons
-      const cwd = process.cwd();
-      const dataGenDirPath = path.join(cwd, 'data_gen');
+    let allowedFlags = [];
 
-      const templateDirPath = path.join(dataGenDirPath, 'templates');
-      if (!fs.existsSync(templateDirPath)) {
-        this.error(`Template directory does not exist at ${templateDirPath}. Please initialize the setup first.`);
+    if (objectName) {
+      this.log(chalk.magenta.bold(`Working on the object level settings for ${objectName}`));
+      if (!Array.isArray(config.sObjects)) {
+        config.sObjects = [];
       }
-
-      const configFilePath = path.join(templateDirPath, filename);
-      if (!fs.existsSync(configFilePath)) {
-        this.error(`Config file not found at ${configFilePath}`);
-      }
-
-      config = JSON.parse(fs.readFileSync(configFilePath, 'utf8')) as templateSchema;
-      let allowedFlags = [];
-
-      // Checking if Object Flag is passed or not
-
-      if (objectName) {
-        this.log(chalk.magenta.bold(`Working on the object level settings for ${objectName}`));
-        if (!Array.isArray(config.sObjects)) {
-          config.sObjects = [];
+      let objectConfig = config.sObjects.find(
+        (obj: SObjectItem): boolean => Object.keys(obj)[0] === objectName
+      ) as SObjectItem;
+      if (!objectConfig) {
+        const addToTemplate = await askQuestion(
+          chalk.yellow(`'${objectName}' does not exists in data template! Do you want to add?`) + chalk.dim('(Y/n)')
+        );
+        if (addToTemplate.toLowerCase() === 'yes' || addToTemplate.toLowerCase() === 'y') {
+          objectConfig = { [objectName]: {} };
+          config.sObjects.push(objectConfig);
+        } else {
+          return;
         }
-        let objectConfig = config.sObjects.find(
-          (obj: SObjectItem): boolean => Object.keys(obj)[0] === objectName
-        ) as SObjectItem;
-        if (!objectConfig) {
-          const addToTemplate = await askQuestion(
-            chalk.yellow(`'${objectName}' does not exists in data template! Do you want to add?`) + chalk.dim('(Y/n)')
-          );
-          if (addToTemplate.toLowerCase() === 'yes' || addToTemplate.toLowerCase() === 'y') {
-            objectConfig = { [objectName]: {} };
-            config.sObjects.push(objectConfig);
-          } else {
-            return;
-          }
-        }
-        const configFileForSobject: typeSObjectSettingsMap = objectConfig[objectName];
-        allowedFlags = ['fieldsToExclude', 'language', 'count'];
-        updateOrInitializeConfig(configFileForSobject, flags, allowedFlags, this.log.bind(this));
-      } else {
-        const configFile: templateSchema = config;
-        allowedFlags = ['outputFormat', 'namespaceToExclude', 'language', 'count'];
-        updateOrInitializeConfig(configFile, flags, allowedFlags, this.log.bind(this));
       }
+      const configFileForSobject: typeSObjectSettingsMap = objectConfig[objectName];
 
-      // updateOrInitializeConfig(configFile, flags, allowedFlags, this.log.bind(this));
-      fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8');
-      this.log(chalk.green(`Success: Configuration updated in ${configFilePath}`));
-    } catch (error) {
-      this.error(`Process halted: ${(error as Error).message}`);
+      allowedFlags = ['fieldsToExclude', 'language', 'count', 'pickLeftFields', 'fieldsToConsider'];
+      updateOrInitializeConfig(configFileForSobject, flags, allowedFlags, this.log.bind(this));
+    } else {
+      const configFile: templateSchema = config;
+      allowedFlags = ['outputFormat', 'namespaceToExclude', 'language', 'count'];
+      updateOrInitializeConfig(configFile, flags, allowedFlags, this.log.bind(this));
     }
+
+    fs.writeFileSync(configFilePath, JSON.stringify(config, null, 2), 'utf8');
+    this.log(chalk.green(`Success: Configuration updated in ${configFilePath}`));
   }
 }
