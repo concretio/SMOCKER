@@ -57,12 +57,12 @@ export function handleFieldsToConsider(sObjectConfig: typeSObjectSettingsMap, in
     sObjectConfig.fieldsToConsider = {};
   }
 
-  const fieldsToConsider: fieldsToConsiderMap = {};
+  const fieldsToConsider: fieldsToConsiderMap = sObjectConfig.fieldsToConsider;
 
   const regex = /([\w-]+):\s*(\[[^\]]*\])|([\w-]+)/g;
   let match;
   while ((match = regex.exec(input)) !== null) {
-    const key = match[1] || match[3];
+    const key = (match[1] || match[3]).toLowerCase();
     const value = match[2];
     if (key && value) {
       const fieldValues = value
@@ -70,7 +70,8 @@ export function handleFieldsToConsider(sObjectConfig: typeSObjectSettingsMap, in
         .split(',')
         .map((v) => v.trim());
 
-      fieldsToConsider[key] = fieldValues;
+      const fieldValuesSet = new Set([...(fieldsToConsider[key] || []), ...fieldValues]);
+      fieldsToConsider[key] = Array.from(fieldValuesSet);
     } else {
       fieldsToConsider[key] = [];
     }
@@ -84,8 +85,6 @@ export function handleFieldsToConsider(sObjectConfig: typeSObjectSettingsMap, in
       }
     }
   }
-
-  sObjectConfig.fieldsToConsider = { ...sObjectConfig.fieldsToConsider, ...fieldsToConsider };
 
   return sObjectConfig;
 }
@@ -128,14 +127,13 @@ export function updateOrInitializeConfig(
         case 'fieldsToConsider':
           if (typeof value === 'string') {
             updatedConfig = handleFieldsToConsider(configObject as typeSObjectSettingsMap, value);
-            configObject.fieldsToConsider = updatedConfig.fieldsToConsider;
             log(`Updated 'fieldsToConsider' to: ${JSON.stringify(updatedConfig.fieldsToConsider)}`);
           }
           break;
 
         case 'pickLeftFields':
           if (updatedConfig !== undefined) {
-            updatedConfig.pickLeftFields = updatedConfig.pickLeftFields ? false : true;
+            configObject.pickLeftFields = updatedConfig.pickLeftFields ? false : true;
             log(`Setting '${key}' to: ${configObject[key]}`);
           }
           break;
