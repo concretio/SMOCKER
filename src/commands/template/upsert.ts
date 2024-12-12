@@ -1,3 +1,4 @@
+/* eslint-disable sf-plugin/no-missing-messages */
 /* eslint-disable no-param-reassign */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */

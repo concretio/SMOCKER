@@ -5,7 +5,7 @@ import chalk from 'chalk';
 import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import Enquirer from 'enquirer';
-import { getConnectionWithSalesforce, validateConfigJson } from '../template/validate.js';
+import { connectToSalesforceOrg, validateConfigJson } from '../template/validate.js';
 import { SetupInitResult, typeSObjectSettingsMap } from '../../utils/types.js';
 import { languageChoices, outputChoices } from '../../utils/constants.js';
 // Import messages from the specified directory
@@ -436,9 +436,11 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       'n'
     );
     if (wantToValidate.toLowerCase() === 'yes' || wantToValidate.toLowerCase() === 'y') {
-      const connection = await getConnectionWithSalesforce();
-      console.log(chalk.cyan('Success: SF Connection established.'));
-      await validateConfigJson(connection, filePath);
+      const userAliasorUsernName = await askQuestion(
+        chalk.bold('Please enter the alias or username of the Salesforce org you want to connect to:'),
+      );
+      const conn = await  connectToSalesforceOrg(userAliasorUsernName.toLowerCase())
+      await validateConfigJson(conn, filePath);
     }
 
     console.log(chalk.green(`Success: ${templateFileName} created at ${filePath}`));

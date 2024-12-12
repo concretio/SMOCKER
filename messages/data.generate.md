@@ -1,3 +1,10 @@
+# flags.alias.summary
+
+For getting the alias details
+
+# flags.alias.description
+
+For alias details 
 # flags.sObject.summary
 
 summary

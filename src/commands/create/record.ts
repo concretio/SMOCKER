@@ -47,6 +47,7 @@ const fieldsConfigFile = 'generated_output.json';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'create.record');
 let depthForRecord = 0;
+console.log('50');
 // let orgConnection: any;
 export type CreateRecordResult = { path: string };
 type BulkQueryBatchResult = {
@@ -120,6 +121,12 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
       char: 'f',
       multiple: true,
     }),
+    alias : Flags.string({
+      summary: messages.getMessage('flags.alias.summary'),
+      description: messages.getMessage('flags.alias.description'),
+      char: 'a',
+      required: true,
+    }),
   };
   public orgConnection: any;
 
@@ -135,7 +142,6 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
     _excludeFieldsSet.clear();
     let sObjectFieldsMap: Map<string, any[]> = new Map();
     sObjectFieldsMap = await this.getProcessedFields();
-
     const conn = this.orgConnection;
     const configPath = path.join(process.cwd(), fieldsConfigFile);
     const configData = fs.readFileSync(configPath, 'utf8');
@@ -246,7 +252,7 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
 
         }
         fetchedData = allData; 
-      
+        console.log('record 252')
       }
       else {
         const url = `https://api.mockaroo.com/api/generate.json?key=${this.getApiKey()}&count=${countofRecordsToGenerate}`;
