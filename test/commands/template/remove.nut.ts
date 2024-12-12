@@ -300,4 +300,29 @@ describe('TemplateRemove Command', () => {
             }
         });
     });
+    it('Verify remove outputFormat', (done) => {
+        const command = `sf template remove -t ${templateName} -f DI`;
+        exec(command, (error, stdout) => {
+            if (error) {
+                console.error(`exec error: ${JSON.stringify(error)}`);
+                return done(error);
+            }
+            const expectedMessage = "Removing 'DI' from the outputFormat.";
+            verifyCommandOutput(stdout, expectedMessage, done);
+        });
+    });
+    it('Verify removing multiple namespaceToExclude', (done) => {
+        const command = `sf template remove -t ${templateName} -x nameSpace1, nameSpace2`;
+        exec(command, (error, stdout) => {
+            if (error) {
+                console.error(`exec error: ${JSON.stringify(error)}`);
+                return done(error);
+            }
+            const expectedMessage = "Removing 'nameSpace1, nameSpace2' from the namespaceToExclude."
+            if (!stdout.includes(expectedMessage)) {
+                return done(new Error(`Expected message "${expectedMessage}" not found in stdout.`));
+            }
+            verifyCommandOutput(stdout, expectedMessage, done);
+        });
+    });
 });
