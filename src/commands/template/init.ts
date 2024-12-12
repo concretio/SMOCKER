@@ -12,7 +12,6 @@ import { languageChoices, outputChoices } from '../../utils/constants.js';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.init');
 
-
 /* ------------------- Functions ---------------------- */
 
 /*
@@ -36,16 +35,20 @@ function handleDirStruct(): string {
   }
 }
 
+let sigintListenerAdded = false;
+
 async function runMultiSelectPrompt(): Promise<string[]> {
   try {
     type Answers = {
       choices: string[];
     };
     // Listen for Ctrl+C and terminate the CLI
-    process.on('SIGINT', () => {
-      console.log('\nCLI terminated by the user.');
-      process.exit(0);
-    });
+    if (!sigintListenerAdded) {
+      process.on('SIGINT', () => {
+        process.exit(0);
+      });
+      sigintListenerAdded = true;
+    }
 
     const answers = await Enquirer.prompt<Answers>({
       type: 'multiselect',
@@ -57,8 +60,6 @@ async function runMultiSelectPrompt(): Promise<string[]> {
     return answers.choices;
   } catch (error) {
     if (error === '') {
-      // Handle Ctrl+C gracefully
-      console.log('\nCLI terminated by the user.');
       process.exit(0);
     }
     console.error('Error:', error);
@@ -75,10 +76,12 @@ async function runSelectPrompt(
       choices: string;
     };
     // Listen for Ctrl+C and terminate the CLI
-    process.on('SIGINT', () => {
-      console.log('\nCLI terminated by the user.');
-      process.exit(0);
-    });
+    if (!sigintListenerAdded) {
+      process.on('SIGINT', () => {
+        process.exit(0);
+      });
+      sigintListenerAdded = true;
+    }
     const answers = await Enquirer.prompt<Answers>({
       type: 'select',
       name: 'choices',
@@ -89,8 +92,6 @@ async function runSelectPrompt(
     return answers.choices;
   } catch (error) {
     if (error === '') {
-      // Handle Ctrl+C gracefully
-      console.log('\nCLI terminated by the user.');
       process.exit(0);
     }
     console.error('Error:', error);
@@ -365,20 +366,15 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       }
       sObjectSettingsMap[sObjectName] = {};
 
-      const fieldsToExcludeInput = await askQuestion(
-        chalk.white.bold(`[${sObjectName}]`) +
-          ' Provide fields(API names) to exclude ' +
-          chalk.dim('(comma-separated)'),
-        ''
+      // Note:languageChoices is defined above already
+      const ovrrideSelectedLangVal = await runSelectPrompt(
+        `[${sObjectName}] Language in which test data should be generated`,
+        languageChoices
       );
-      const fieldsToExclude: string[] = fieldsToExcludeInput
-        .toLowerCase()
-        .split(/[\s,]+/)
-        .filter(Boolean);
-
-      if (fieldsToExclude.length > 0) {
-        sObjectSettingsMap[sObjectName]['fieldsToExclude'] = fieldsToExclude;
+      if (ovrrideSelectedLangVal) {
+        sObjectSettingsMap[sObjectName].language = ovrrideSelectedLangVal;
       }
+
       // object record count
       let overrideCount = null;
       while (overrideCount === null) {
@@ -398,14 +394,103 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
           overrideCount = null;
         }
       }
-      // Note:languageChoices is defined above already
-      const ovrrideSelectedLangVal = await runSelectPrompt(
-        `[${sObjectName}] Language in which test data should be generated`,
-        languageChoices
+
+      const fieldsToExcludeInput = await askQuestion(
+        chalk.white.bold(`[${sObjectName}]`) +
+          ' Provide fields(API names) to exclude ' +
+          chalk.dim('(comma-separated)'),
+        ''
       );
-      if (ovrrideSelectedLangVal) {
-        sObjectSettingsMap[sObjectName].language = ovrrideSelectedLangVal;
+      const fieldsToExclude: string[] = fieldsToExcludeInput
+        .toLowerCase()
+        .split(/[\s,]+/)
+        .filter(Boolean);
+
+      if (fieldsToExclude.length > 0) {
+        sObjectSettingsMap[sObjectName]['fieldsToExclude'] = fieldsToExclude;
       }
+
+      /* ---------------------New features added------------------------------*/
+
+      console.log(
+        chalk.blue.bold(
+          'Note: In case of dependent picklist fields, value should be defined in order.Eg: (dp-Year:[2024], dp-Month:[2])'
+        )
+      );
+
+      const fieldsToConsiderInput = await askQuestion(
+        chalk.white.bold(`[${sObjectName} - fields to consider]`) +
+          ' Provide field names to be considered for generating data. (E.g. Phone: ["909090", "6788489"], Fax )',
+        ''
+      );
+
+      const fieldsToConsider: { [key: string]: string[] | string } = {};
+
+      // const regex = /(\w+):\s*(\[[^\]]*\])|(\w+)/g;
+      const regex = /([\w-]+):\s*(\[[^\]]*\])|([\w-]+)/g;
+
+      let match;
+      while ((match = regex.exec(fieldsToConsiderInput)) !== null) {
+        const key = match[1] || match[3];
+        const value = match[2];
+        if (key && value) {
+          const fieldValues = value
+            .slice(1, -1)
+            .split(',')
+            .map((v) => v.trim());
+          fieldsToConsider[key] = fieldValues;
+        } else {
+          fieldsToConsider[key] = [];
+        }
+
+        if (key.startsWith('dp-')) {
+          if (value) {
+            const dpfieldValue = value.slice(1, -1).trim();
+            fieldsToConsider[key] = dpfieldValue;
+          } else {
+            fieldsToConsider[key] = '';
+          }
+        }
+      }
+
+      const conflictingFields = Object.keys(fieldsToConsider).filter((field) =>
+        fieldsToExclude.includes(field.toLowerCase())
+      );
+      if (conflictingFields.length > 0) {
+        console.log(
+          chalk.yellow(
+            `Warning: Common fields found in 'fields-to-exclude' and 'fields-to-consider' in sObject '${sObjectName}' is '${conflictingFields.join(
+              ','
+            )}' . You must remove them!`
+          )
+        );
+      }
+
+      if (Object.keys(fieldsToConsider).length > 0) {
+        sObjectSettingsMap[sObjectName]['fieldsToConsider'] = fieldsToConsider;
+      }
+      const pickLeftFields = [
+        { name: 'true', message: 'true', value: 'true', hint: '' },
+        { name: 'false', message: 'false', value: 'false', hint: '' },
+      ];
+      const pickLeftFieldsInput = await runSelectPrompt(
+        `[${sObjectName} - pick-left-fields] Want to generate data for fields neither in 'fields to consider' nor in 'fields to exclude'`,
+        pickLeftFields
+      );
+      if (pickLeftFieldsInput) {
+        sObjectSettingsMap[sObjectName]['pickLeftFields'] = pickLeftFieldsInput === 'true';
+      }
+
+      if (Object.keys(fieldsToConsider).length === 0 && pickLeftFieldsInput === 'false') {
+        console.log(
+          chalk.yellow.bold(
+            "No fields are found to generate data. Make sure to set 'pick-left-fields' to true or add fields to 'fields-to-consider'"
+          )
+        );
+        continue;
+      }
+      /* -------------------------------------------- */
+
       overwriteGlobalSettings = await askQuestion(
         'Do you wish to overwrite global settings for another Object(API name)? (Y/n)',
         'n'
