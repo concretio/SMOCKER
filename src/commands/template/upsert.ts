@@ -10,47 +10,12 @@ import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { error } from '@oclif/core/errors';
 import chalk from 'chalk';
+import { arrayFlags } from '../../utils/constants.js';
+import { templateSchema , tempAddFlags , typeSObjectSettingsMap, SObjectItem  } from '../../utils/types.js';
 import { askQuestion } from './init.js';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.upsert');
-
-export type TemplateAddResult = {
-  path: string;
-};
-
-type typeSObjectSettingsMap = {
-  fieldsToExclude?: string[];
-  fieldsToConsider?: fieldsToConsiderMap;
-  count?: number;
-  language?: string;
-  pickLeftFields?: boolean;
-};
-
-type SObjectItem = { [key: string]: typeSObjectSettingsMap };
-
-type templateSchema = {
-  templateFileName: string;
-  namespaceToExclude: string[];
-  outputFormat: string[];
-  language: string;
-  count: number;
-  sObjects: SObjectItem[];
-};
-type tempAddFlags = {
-  sObjects?: string;
-  templateName: string;
-  language?: string;
-  count?: number;
-  namespaceToExclude?: string;
-  outputFormat?: string;
-  fieldsToExclude?: string;
-  fieldsToConsider?: string;
-};
-
-type fieldsToConsiderMap = {
-  [key: string]: string[] | string;
-};
 
 export function handleFieldsToConsider(sObjectConfig: typeSObjectSettingsMap, input: string): typeSObjectSettingsMap {
   if (!sObjectConfig.fieldsToConsider) {

@@ -1,3 +1,4 @@
+/* eslint-disable sf-plugin/only-extend-SfCommand */
 /* eslint-disable no-empty */
 /* eslint-disable @typescript-eslint/no-shadow */
 /* eslint-disable no-underscore-dangle */
@@ -385,7 +386,7 @@ export default class DataGenerate extends CreateRecord {
       JSON.stringify({ outputFormat: baseConfig.outputFormat, sObjects: outputData }, null, 2),
       'utf8'
     );
-    this.log(`Generated data written to: ${outputFile}`);
+//  this.log(`Generated data written to: ${outputFile}`);
     this.orgConnection = conn;
     await super.run();
     return { path: adjustedTemplateName };

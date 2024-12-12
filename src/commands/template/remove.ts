@@ -5,45 +5,9 @@ import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages } from '@salesforce/core';
 import { error } from '@oclif/core/errors';
 import chalk from 'chalk';
-
+import { typeSObjectSettingsMap, templateSchema , TemplateRemoveResult } from '../../utils/types.js';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.remove');
-
-export type TemplateRemoveResult = {
-  path: string;
-};
-
-export type templateSchema = {
-  templateFileName: string;
-  namespaceToExclude: string[];
-  outputFormat: string[];
-  language: string;
-  count: number;
-  sObjects: Array<{ [key: string]: typeSObjectSettingsMap }>;
-};
-export type namespaceAndOutputSchema = {
-  namespaceToExclude: string[];
-  outputFormat: string[];
-};
-export type flagObj = {
-  templateName: string;
-  namespaceToExclude?: string[];
-  outputFormat?: string[];
-  language?: boolean;
-  count?: boolean;
-  sObject?: string;
-  fieldsToExclude?: string[];
-  pickLeftFields?: boolean;
-  fieldsToConsider?: string[];
-};
-
-type typeSObjectSettingsMap = {
-  fieldsToExclude?: string[];
-  fieldsToConsider?: { [key: string]: string | undefined };
-  pickLeftFields?: boolean;
-  count?: number;
-  language?: string;
-};
 
 function deleteSObjectField(jsonData: templateSchema, sObjectName: string, fieldName: string): templateSchema {
   const sObject = jsonData.sObjects.find((obj) => Object.prototype.hasOwnProperty.call(obj, sObjectName)) as {

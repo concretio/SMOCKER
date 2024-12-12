@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 /* eslint-disable no-console */
 /* eslint-disable sf-plugin/command-summary */
 /* eslint-disable sf-plugin/command-example */
@@ -29,11 +30,19 @@
 import * as fs from 'fs';
 import * as path from 'path';
 // import { fileURLToPath } from 'url';
+// import * as readline from 'readline'; 
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages } from '@salesforce/core';
 import { Connection } from '@salesforce/core';
 import fetch from 'node-fetch';
+// import * as cliProgress from 'cli-progress';
+import { Progress }  from '@salesforce/sf-plugins-core';
+import chalk  from 'chalk';
 import { templateAddFlags } from '../template/upsert.js';
+import { MOCKAROO_API_CALLS_PER_DAY, MOCKAROO_CHUNK_SIZE } from '../../utils/constants.js';
+// import { title } from 'process';
+
+
 const fieldsConfigFile = 'generated_output.json';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'create.record');
@@ -96,8 +105,9 @@ type CreateResult = { id: string; success: boolean; errors: any[] };
 
 const _excludeFieldsSet = new Set<string>();
 const createdRecordsIds: Map<string, string[]> = new Map();
-
+const progressBar = new Progress(true )
 export default class CreateRecord extends SfCommand<CreateRecordResult> {
+  
   public static readonly flags = {
     ...templateAddFlags,
     templateName: Flags.string({
@@ -117,7 +127,8 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
    * Main method to execute the record creation process.
    *
    * @returns {Promise<CreateRecordResult>} - The result of the record creation, including the path to the script.
-   * @author Kunal Vishnani
+   * @author Rahul Arora
+   * method has been updated to handle record generation for more than 1000 records 
    */
   public async run(): Promise<CreateRecordResult> {
     const { flags } = await this.parse(CreateRecord);
@@ -133,24 +144,117 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
     // Get outputFormat from JSON
     const outputFormat = jsonDataForObjectNames.outputFormat;
     const sObjectNames = jsonDataForObjectNames.sObjects.map((sObject: { sObject: string }) => sObject.sObject);
-    const sObjectCountMap: Map<string, number> = new Map();
-    jsonDataForObjectNames.sObjects.forEach((sObject: { sObject: string; count: number }) => {
-      const sObjectName = sObject.sObject;
-      const objectCount = sObject.count;
-      sObjectCountMap.set(sObjectName, objectCount);
-    });
+    // const sObjectCountMap: Map<string, number> = new Map();
+    // jsonDataForObjectNames.sObjects.forEach((sObject: { sObject: string; count: number }) => {
+    //   const sObjectName = sObject.sObject;
+    //   const objectCount = sObject.count;
+    //   sObjectCountMap.set(sObjectName, objectCount);
+    // });
+    // for (const object of sObjectNames) {
+    //   const url = `https://api.mockaroo.com/api/generate.json?key=${this.getApiKey()}&count=` + sObjectCountMap.get(object);
+    //   depthForRecord = 0;
+    //   const fields = sObjectFieldsMap.get(object);
+    //   if (!fields) {
+    //     this.log(`No fields found for object: ${object}`);
+    //     continue;
+    //   }
+    //   const processedFields = await this.processObjectFieldsForIntitalJsonFile(conn, fields, object);
+    //   const jsonData = await this.fetchMockarooData(url, processedFields);
 
+    //   if (outputFormat.includes('json') || outputFormat.includes('json')) {
+    //     const dateTime = new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').split('.')[0];
+    //     const jsonFilePath = `${process.cwd()}/data_gen/output/${object}_` + flags.templateName?.replace(
+    //       '.json',
+    //       ''
+    //     ) + `_${dateTime}.json`;
+    //     fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2));
+    //     this.log(`Data for ${object} saved as JSON in ${jsonFilePath}`);
+    //   }
+
+    //   if (outputFormat.includes('csv') || outputFormat.includes('csv')) {
+    //     const csvData = this.convertJsonToCsv(jsonData);
+    //     const dateTime = new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').split('.')[0];
+    //     const csvFilePath = `${process.cwd()}/data_gen/output/${object}_` + flags.templateName?.replace(
+    //       '.json',
+    //       ''
+    //     )+ `${dateTime}.csv`;
+    //     fs.writeFileSync(csvFilePath, csvData);
+    //     this.log(`Data for ${object} saved as CSV in ${csvFilePath}`);
+    //   }
+
+    //   if (outputFormat.includes('DI') || outputFormat.includes('di')) {
+    //     // Create records in Salesforce and store IDs
+    //     const errorSet: Set<string> = new Set();
+    //     const insertedIds: string[] = [];
+    //     const insertResult = await this.insertRecords(conn, object, jsonData);
+    //     insertResult.forEach((result: { id?: string; success: boolean; errors?: any[] }) => {
+    //       if (result.success && result.id) {
+    //         insertedIds.push(result.id);
+    //       } else if (result.errors) {
+    //         result.errors.forEach((error) => errorSet.add(error.message));
+    //       }
+    //     });
+    //     this.log(`Records inserted for ${object}`);
+    //     if (errorSet.size > 0) {
+    //       this.log(
+    //         `\nFailed to insert ${
+    //           insertResult.length - insertedIds.length
+    //         } record(s) for '${object}' object with following error(s):`
+    //       );
+    //       errorSet.forEach((error) => this.log(`- ${error}`));
+    //     }
+    //     this.updateCreatedRecordIds(object, insertResult);
+
+    //     if (flags['include-files'] !== undefined && flags['include-files']?.length > 0) {
+    //       this.insertImage(flags['include-files'], conn, insertedIds);
+    //     }
+    //   }
+    // }
+    let jsonData: any 
+    let fetchedData: Record<string, any > 
+    let apiCallout: number = 0
     for (const object of sObjectNames) {
-      const url = `https://api.mockaroo.com/api/generate.json?key=${this.getApiKey()}&count=` + sObjectCountMap.get(object);
       depthForRecord = 0;
+      const currentSObject = jsonDataForObjectNames.sObjects.find(
+        (sObject: { sObject: string }) => sObject.sObject === object
+      );
+      let countofRecordsToGenerate = currentSObject.count;
       const fields = sObjectFieldsMap.get(object);
       if (!fields) {
         this.log(`No fields found for object: ${object}`);
         continue;
       }
       const processedFields = await this.processObjectFieldsForIntitalJsonFile(conn, fields, object);
-      const jsonData = await this.fetchMockarooData(url, processedFields);
+      if (countofRecordsToGenerate === undefined) {
+        throw new Error(`Count for object "${object}" is undefined.`);
+      }
+      if (countofRecordsToGenerate > 1000) {  
+        const numberOfChunks = Math.ceil(countofRecordsToGenerate / MOCKAROO_CHUNK_SIZE); 
+        let allData: any[] = []; 
+        for (let i = 0; i < numberOfChunks; i++) {
+          
+          if (apiCallout >= MOCKAROO_API_CALLS_PER_DAY) {
+                this.log('API LIMIT EXCEEDED FOR THE DAY')
+                throw new Error('API call limit exceeded for the day.');
+            }
+          const currentChunkSize = countofRecordsToGenerate > MOCKAROO_CHUNK_SIZE ? MOCKAROO_CHUNK_SIZE : countofRecordsToGenerate; 
+          const urlTopass = `https://api.mockaroo.com/api/generate.json?key=${this.getApiKey()}&count=${currentChunkSize}`;
+          const chunkData = await this.fetchMockarooData(urlTopass, processedFields);
+          apiCallout++;
+          allData = allData.concat(chunkData) 
+          countofRecordsToGenerate -= currentChunkSize; 
 
+        }
+        fetchedData = allData; 
+      
+      }
+      else {
+        const url = `https://api.mockaroo.com/api/generate.json?key=${this.getApiKey()}&count=${countofRecordsToGenerate}`;
+        fetchedData = await this.fetchMockarooData(url, processedFields);
+      }
+
+      jsonData = fetchedData
+      
       if (outputFormat.includes('json') || outputFormat.includes('json')) {
         const dateTime = new Date().toISOString().replace('T', '_').replace(/[:.]/g, '-').split('.')[0];
         const jsonFilePath = `${process.cwd()}/data_gen/output/${object}_` + flags.templateName?.replace(
@@ -158,7 +262,7 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
           ''
         ) + `_${dateTime}.json`;
         fs.writeFileSync(jsonFilePath, JSON.stringify(jsonData, null, 2));
-        this.log(`Data for ${object} saved as JSON in ${jsonFilePath}`);
+        this.log(chalk.green(`Data for ${object} saved as JSON in `) + jsonFilePath);
       }
 
       if (outputFormat.includes('csv') || outputFormat.includes('csv')) {
@@ -169,7 +273,7 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
           ''
         )+ `${dateTime}.csv`;
         fs.writeFileSync(csvFilePath, csvData);
-        this.log(`Data for ${object} saved as CSV in ${csvFilePath}`);
+        this.log(chalk.green(`Data for ${object} saved as CSV in `) + csvFilePath);
       }
 
       if (outputFormat.includes('DI') || outputFormat.includes('di')) {
@@ -180,17 +284,22 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
         insertResult.forEach((result: { id?: string; success: boolean; errors?: any[] }) => {
           if (result.success && result.id) {
             insertedIds.push(result.id);
-          } else if (result.errors) {
-            result.errors.forEach((error) => errorSet.add(error.message));
+          }
+          //  else if (result.errors) {
+          //   result.errors.forEach((error) => errorSet.add(error.message));
+          // }
+          else if (result.errors) {
+            result.errors.forEach((error) => {
+              const errorMessage = error?.message || JSON.stringify(error) || 'Unknown error';
+              errorSet.add(errorMessage);
+            });
           }
         });
-        this.log(`Records inserted for ${object}`);
+        // this.log(chalk.green(`Records inserted for ${object}`));
+
         if (errorSet.size > 0) {
-          this.log(
-            `\nFailed to insert ${
-              insertResult.length - insertedIds.length
-            } record(s) for '${object}' object with following error(s):`
-          );
+         //  this.log(`\nFailed to insert ${errorSet.size} record(s) for '${object}' object with following error(s):`);
+          this.log(`\nFailed to insert ${insertResult.length - insertedIds.length} record(s) for '${object}' object with following error(s):`);
           errorSet.forEach((error) => this.log(`- ${error}`));
         }
         this.updateCreatedRecordIds(object, insertResult);
@@ -200,6 +309,7 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
         }
       }
     }
+
 
     // Save created record IDs if needed
     if (outputFormat.includes('DI') || outputFormat.includes('di')) {
@@ -211,7 +321,6 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
           '.json'
       );
     }
-
     return { path: `${process.cwd()}/src/commands/create/record.ts` };
   }
 
@@ -325,8 +434,9 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
    * @author Khushboo Sharma
    */
   private async insertRecords(conn: Connection, object: string, jsonData: GenericRecord[]): Promise<CreateResult[]> {
-    const results: CreateResult[] = [];
+    const   results: CreateResult[] = [];
     const dataArray = Array.isArray(jsonData) ? jsonData : [jsonData];
+
     const initialRecords = dataArray.slice(0, 200);
     const insertResults = await conn.sobject(object).create(initialRecords);
     const initialInsertResult: CreateResult[] = (Array.isArray(insertResults) ? insertResults : [insertResults]).map(
@@ -338,40 +448,87 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
     );
     results.push(...initialInsertResult);
     if (dataArray.length > 200) {
+      progressBar.start(100, { title: 'Test' } ); 
       const remainingRecords = dataArray.slice(200);
+      const remainingTotal = remainingRecords.length
       const job = conn.bulk.createJob(object, 'insert');
       const batch = job.createBatch();
-      batch.execute(remainingRecords);
-
+       batch.execute(remainingRecords);
       await new Promise<void>((resolve, reject) => {
         batch.on('queue', () => {
-          batch.poll(1_000 /* interval(ms) */, 30_000 /* timeout(ms) */);
-          resolve();
+          batch.poll(500 /* interval(ms) */, 600_000 /* timeout(ms) */);
+          const pollInterval = setInterval(() => {
+            batch
+              .check()
+              .then((batchStatus) => {
+               //  console.log(`Records processed: ${batchStatus.numberRecordsProcessed}`);
+                const  recordsProcessed: number  = Number(batchStatus.numberRecordsProcessed) || 0;
+                const   percentage: number  = Math.ceil((recordsProcessed / remainingTotal) * 100); // Percentage calculation for remaining records
+                progressBar.update(percentage);
+                if (batchStatus.state === 'Completed' || batchStatus.state === 'Failed') {
+                  clearInterval(pollInterval);
+                  if (batchStatus.state === 'Failed') {
+                    console.error('Batch failed.');
+                    reject(new Error('Batch processing failed.'));
+                  }
+              //     else {
+              // //      console.log('Batch completed.');
+              //       progressBar.finish();
+              //       batch.on('response', (rets: BulkQueryBatchResult[]) => {
+              //         const mappedResults: CreateResult[] = rets.map((ret: BulkQueryBatchResult) => ({
+              //           id: ret.id ?? '',
+              //           success: ret.success ?? false,
+              //           errors: ret.errors ?? [],
+              //         }));
+              //          results.push(...mappedResults) // Push results into the results array
+              //       });  
+              //       resolve();
+              //     }
+                }
+              })
+              .catch((err) => {
+                clearInterval(pollInterval);
+                console.error('Error while checking batch status:', err);
+                reject(err);
+              });
+          }, 1000);
         });
-        batch.on('error', (err) => {
-          reject(err);
-        });
-      });
-      const bulkResults: CreateResult[] = await new Promise((resolve, reject) => {
         batch.on('response', (rets: BulkQueryBatchResult[]) => {
           const mappedResults: CreateResult[] = rets.map((ret: BulkQueryBatchResult) => ({
             id: ret.id ?? '',
             success: ret.success ?? false,
             errors: ret.errors ?? [],
           }));
-          resolve(mappedResults);
+    
+          results.push(...mappedResults); // Push the bulk results to the main results array
+          progressBar.finish();
+          resolve();
         });
         batch.on('error', (err) => {
           reject(err);
         });
       });
-
-      results.push(...bulkResults);
+      // const bulkResults: CreateResult[] = await new Promise((resolve, reject) => {
+      //   batch.on('response', (rets: BulkQueryBatchResult[]) => {
+      //     console.log('482');
+      //     const mappedResults: CreateResult[] = rets.map((ret: BulkQueryBatchResult) => ({
+      //       id: ret.id ?? '',
+      //       success: ret.success ?? false,
+      //       errors: ret.errors ?? [],
+      //     }));
+      //     console.log('-------------------');
+      //     resolve(mappedResults);
+      //   });
+      //   batch.on('error', (err) => {
+      //     reject(err);
+      //   });
+      // });
+      // results.push(...bulkResults);
       await job.close();
     }
     return results;
   }
-
+ 
   /**
    * Updates the set of created record IDs for a specified Salesforce object based on the results of an insert operation.
    * This method filters the successful results and extracts their IDs, then updates the `createdRecordsIds` map with these IDs.

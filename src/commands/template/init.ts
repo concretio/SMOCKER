@@ -6,28 +6,11 @@ import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import Enquirer from 'enquirer';
 import { getConnectionWithSalesforce, validateConfigJson } from '../template/validate.js';
-
+import { SetupInitResult, typeSObjectSettingsMap } from '../../utils/types.js';
+import { languageChoices, outputChoices } from '../../utils/constants.js';
 // Import messages from the specified directory
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.init');
-
-/* ------------------- Types ---------------------- */
-export type SetupInitResult = {
-  templateFileName: string;
-  namespaceToExclude: string[];
-  outputFormat: string[];
-  language: string;
-  count: number;
-  sObjects: Array<{ [key: string]: typeSObjectSettingsMap }>;
-};
-
-type typeSObjectSettingsMap = {
-  count?: number;
-  language?: string;
-  fieldsToExclude?: string[];
-  fieldsToConsider?: { [key: string]: string[] | string };
-  pickLeftFields?: boolean | string;
-};
 
 /* ------------------- Functions ---------------------- */
 
@@ -59,12 +42,6 @@ async function runMultiSelectPrompt(): Promise<string[]> {
     type Answers = {
       choices: string[];
     };
-
-    const outputChoices = [
-      { name: 'DI', message: 'DI', value: 'di', hint: 'Create records into org (limit- upto 200)' },
-      { name: 'JSON', message: 'JSON', value: 'json' },
-      { name: 'CSV', message: 'CSV', value: 'csv' },
-    ];
     // Listen for Ctrl+C and terminate the CLI
     if (!sigintListenerAdded) {
       process.on('SIGINT', () => {
@@ -295,10 +272,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
     }
 
     /* generate data in language */
-    const languageChoices = [
-      { name: 'en', message: 'en', value: 'en', hint: 'English (US)' },
-      { name: 'jp', message: 'jp', value: 'jp', hint: 'Japanese' },
-    ];
+
     const language = await runSelectPrompt('In which language would you like to generate test data?', languageChoices);
 
     /* record count */
@@ -311,18 +285,8 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       );
       if (
         preSanitizedCount > 0 &&
-        preSanitizedCount <= 1000 &&
         outputFormat.includes('di') &&
         !isNaN(preSanitizedCount)
-      ) {
-        count = preSanitizedCount;
-        break;
-      } else if (
-        preSanitizedCount > 0 &&
-        preSanitizedCount <= 1000 &&
-        preSanitizedCount !== undefined &&
-        !isNaN(preSanitizedCount) &&
-        !outputFormat.includes('di')
       ) {
         count = preSanitizedCount;
         break;
@@ -330,11 +294,8 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         count = 1;
         break;
       }
-
-      if (outputFormat.includes('di')) {
-        console.log(chalk.yellow('Invalid input. Please enter between 1-200, with DI- direct insertion'));
-      } else {
-        console.log(chalk.yellow('Invalid input. Please enter valid number 1-1000'));
+       else {
+        console.log(chalk.yellow('Enter a valid number '));
       }
     }
 
