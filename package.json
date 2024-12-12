@@ -74,8 +74,8 @@
     "prepack": "sf-prepack",
     "version": "oclif readme",
     "semantic-release": "semantic-release",
-    "test:nuts": "nyc mocha \"**/*.nut.ts\" --slow 4500 --timeout 600000"
-    
+    "test:nuts": "nyc mocha \"**/*.nut.ts\" --slow 4500 --timeout 600000",
+    "test": "mocha --loader ts-node/esm --recursive test/**/*.nut.ts"
   },
   "wireit": {
     "build": {

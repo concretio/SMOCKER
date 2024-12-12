@@ -165,6 +165,9 @@ function validateFlags(flags: string[]): boolean {
 function checkValidObject(flags: flagObj, jsonData: templateSchema): void {
   let concernedObject;
   if (Object.keys(flags).includes('sObject') && ((Object.keys(flags).includes('fieldsToExclude') || Object.keys(flags).includes('language') || Object.keys(flags).includes('fieldsToConsider') || Object.keys(flags).includes('count')))) {
+    if (flags.sObject && parseInput([flags.sObject]).length > 1) {
+      throw new Error('Object-level values can only be removed from a single object at a time.');
+    }
     const sObjectName = (flags.sObject as string).toLowerCase();
     concernedObject = jsonData.sObjects.find((obj) => Object.keys(obj).some(key => key.toLowerCase() === sObjectName));
     if (!concernedObject || concernedObject === undefined) {
