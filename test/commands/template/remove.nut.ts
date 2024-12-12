@@ -18,12 +18,15 @@ describe('TemplateRemove Command', () => {
             namespaceToExclude: [
                 'nameSpace1',
                 'nameSpace2',
-                'namespace3'
+                'namespace3',
+                'namespace8',
+                'namespace9'
             ],
             outputFormat: [
                 'di',
                 'csv',
-                'xml'
+                'xml',
+                'json'
             ],
             language: 'en',
             count: 1,
@@ -96,6 +99,20 @@ describe('TemplateRemove Command', () => {
             verifyCommandOutput(stdout, expectedMessage, done);
         });
     });
+    it('Verify removing multiple namespaceToExclude', (done) => {
+        const command = `sf template remove -t ${templateName} -x nameSpace8, nameSpace9`;
+        exec(command, (error, stdout) => {
+            if (error) {
+                console.error(`exec error: ${JSON.stringify(error)}`);
+                return done(error);
+            }
+            const expectedMessage = "Removing 'nameSpace8, nameSpace9' from the namespaceToExclude."
+            if (!stdout.includes(expectedMessage)) {
+                return done(new Error(`Expected message "${expectedMessage}" not found in stdout.`));
+            }
+            verifyCommandOutput(stdout, expectedMessage, done);
+        });
+    });
     it('Validate when object name is Capital and removing the language, count and the fields', (done) => {
         const command = `sf template remove -t ${templateName} -l -c -e email -s Lead`;
         exec(command, (error, stdout) => {
@@ -128,7 +145,7 @@ describe('TemplateRemove Command', () => {
         });
     });
     it('Verify error when removing all values from outputFormat', (done) => {
-        const command = `sf template remove -t ${templateName} -f di,csv,XML`;
+        const command = `sf template remove -t ${templateName} -f di,csv,XML,json`;
 
         exec(command, (error, stdout, stderr) => {
             const expectedErrorMessage = 'All the values from \'output-format\' cannot be deleted! You must leave at least one value.';
@@ -219,7 +236,7 @@ describe('TemplateRemove Command', () => {
             }
         });
     });
-    it('Verify error when removing outputFormat along with sObject', (done) => {
+    it('Verify error when removing namespace along with sObject', (done) => {
         const command = `sf template remove -t ${templateName} -s contact -x namespace3`;
 
         exec(command, (error, stdout, stderr) => {
@@ -242,7 +259,7 @@ describe('TemplateRemove Command', () => {
             }
         });
     });
-    it('Verify error when removing namespaceToExclude non-existing values', (done) => {
+    it('Verify error when removing outputFormat non-existing values', (done) => {
         const command = `sf template remove -t ${templateName} -f nameSpace5, nameSpace6`;
 
         exec(command, (error, stdout, stderr) => {
@@ -254,7 +271,7 @@ describe('TemplateRemove Command', () => {
             }
         });
     });
-    it('Verify error when removing namespaceToExclude non-existing values', (done) => {
+    it('Verify error when removing fieldsToExclude non-existing values', (done) => {
         const command = `sf template remove -t ${templateName} -s lead -e value1, value2`;
         exec(command, (error, stdout, stderr) => {
             const expectedErrorMessage = 'Values \'value1, value2\' do not exist in the \'fieldsToExclude\' of sobject \'lead\' settings';
@@ -300,29 +317,16 @@ describe('TemplateRemove Command', () => {
             }
         });
     });
-    it('Verify remove outputFormat', (done) => {
-        const command = `sf template remove -t ${templateName} -f DI`;
+    it('Verify remove outputFormat in capital Letter', (done) => {
+        const command = `sf template remove -t ${templateName} -f JSON`;
         exec(command, (error, stdout) => {
             if (error) {
                 console.error(`exec error: ${JSON.stringify(error)}`);
                 return done(error);
             }
-            const expectedMessage = "Removing 'DI' from the outputFormat.";
+            const expectedMessage = "Removing 'JSON' from the outputFormat.";
             verifyCommandOutput(stdout, expectedMessage, done);
         });
     });
-    it('Verify removing multiple namespaceToExclude', (done) => {
-        const command = `sf template remove -t ${templateName} -x nameSpace1, nameSpace2`;
-        exec(command, (error, stdout) => {
-            if (error) {
-                console.error(`exec error: ${JSON.stringify(error)}`);
-                return done(error);
-            }
-            const expectedMessage = "Removing 'nameSpace1, nameSpace2' from the namespaceToExclude."
-            if (!stdout.includes(expectedMessage)) {
-                return done(new Error(`Expected message "${expectedMessage}" not found in stdout.`));
-            }
-            verifyCommandOutput(stdout, expectedMessage, done);
-        });
-    });
+
 });
