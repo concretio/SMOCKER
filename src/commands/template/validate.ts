@@ -31,10 +31,10 @@ export async function connectToSalesforceOrg(userNameorAlias: string): Promise<C
     }
     const authInfo = await AuthInfo.create({  username : resolvedUsername });
     const connection = await Connection.create({ authInfo });
-    console.log(chalk.green(`Successfully connected to org: ${resolvedUsername}`));
+    console.log(chalk.green(`Success: Connected to SF Org: ${resolvedUsername}`));
     return connection;
   } catch (error) {
-    throw new Error(chalk.red(`Failed to connect to the org : ${chalk.redBright(userNameorAlias)} Please provide valid username`))
+    throw new Error(chalk.red(`Failed: Connect to SF Org: ${chalk.redBright(userNameorAlias)} \n Either provide valid username/alias or authenticate your org using ${chalk.yellowBright("'sf org login web'")}`))
   }
 }
 
