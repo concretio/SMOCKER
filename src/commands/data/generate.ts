@@ -392,7 +392,7 @@ export default class DataGenerate extends CreateRecord {
       JSON.stringify({ outputFormat: baseConfig.outputFormat, sObjects: outputData }, null, 2),
       'utf8'
     );
-    //  this.log(`Generated data written to: ${outputFile}`);
+//  this.log(`Generated data written to: ${outputFile}`);
     this.orgConnection = conn;
     await super.run();
     return { path: adjustedTemplateName };

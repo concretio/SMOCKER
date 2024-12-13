@@ -251,8 +251,7 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
           countofRecordsToGenerate -= currentChunkSize; 
 
         }
-        fetchedData = allData; 
-        console.log('record 252')
+        fetchedData = allData;
       }
       else {
         const url = `https://api.mockaroo.com/api/generate.json?key=${this.getApiKey()}&count=${countofRecordsToGenerate}`;
