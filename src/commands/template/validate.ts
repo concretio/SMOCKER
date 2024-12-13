@@ -107,6 +107,17 @@ export async function validateConfigJson(connection: Connection, configPath: str
       }
 
       const fieldsToExclude = sObjectData['fieldsToExclude'] ?? [];
+      const fieldsToConsider = sObjectData['fieldsToConsider'] ?? {};
+
+      const invFieldsInConisder = Object.keys(fieldsToConsider)
+      console.log('invFieldsInConisder:131 ', invFieldsInConisder)
+
+
+      const invalidFieldsInConisder = Object.keys(fieldsToConsider).filter(
+        (field) =>!getAllFields.includes(field.toLowerCase())
+      );
+
+      console.log('invalidFieldsInConisder: 138', invalidFieldsInConisder); 
 
       const invalidFields = fieldsToExclude.filter((field: string) => !getAllFields.includes(field));
       if (invalidFields.length > 0) {
