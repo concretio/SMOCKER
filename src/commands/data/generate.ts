@@ -159,7 +159,7 @@ export default class DataGenerate extends CreateRecord {
     if (input[controllingFieldName]) {
       const entries = input[controllingFieldName];
       const childFieldName = entries[0]?.childFieldName;
-      console.log('163');
+  
       output[controllingFieldName] = {
         type: 'dependent-picklist',
         values: [],
@@ -309,7 +309,7 @@ export default class DataGenerate extends CreateRecord {
 
       // Initialize dependentPicklistResults for each object
       this.dependentPicklistResults = {};
-      console.log('311');
+   
       for (const inputObject of fieldsToPass) {
         let fieldConfig: Field = { type: inputObject.DataType };
 

@@ -47,7 +47,6 @@ const fieldsConfigFile = 'generated_output.json';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'create.record');
 let depthForRecord = 0;
-console.log('50');
 // let orgConnection: any;
 export type CreateRecordResult = { path: string };
 type BulkQueryBatchResult = {
@@ -476,19 +475,6 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
                     console.error('Batch failed.');
                     reject(new Error('Batch processing failed.'));
                   }
-              //     else {
-              // //      console.log('Batch completed.');
-              //       progressBar.finish();
-              //       batch.on('response', (rets: BulkQueryBatchResult[]) => {
-              //         const mappedResults: CreateResult[] = rets.map((ret: BulkQueryBatchResult) => ({
-              //           id: ret.id ?? '',
-              //           success: ret.success ?? false,
-              //           errors: ret.errors ?? [],
-              //         }));
-              //          results.push(...mappedResults) // Push results into the results array
-              //       });  
-              //       resolve();
-              //     }
                 }
               })
               .catch((err) => {
