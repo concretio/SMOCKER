@@ -5,10 +5,15 @@ import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages } from '@salesforce/core';
 import { error } from '@oclif/core/errors';
 import chalk from 'chalk';
-import { typeSObjectSettingsMap, templateSchema , TemplateRemoveResult } from '../../utils/types.js';
+import {
+  typeSObjectSettingsMap,
+  templateSchema,
+  TemplateRemoveResult,
+  flagObj,
+  namespaceAndOutputSchema,
+} from '../../utils/types.js';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.remove');
-
 function deleteSObjectField(jsonData: templateSchema, sObjectName: string, fieldName: string): templateSchema {
   const sObject = jsonData.sObjects.find((obj) => Object.prototype.hasOwnProperty.call(obj, sObjectName)) as {
     [key: string]: typeSObjectSettingsMap;
@@ -88,18 +93,16 @@ function DeleteArrayValue(
 }
 function valuesDoesNotExistError(valuesNotInJSON: string[], flagName: string, sObjectName: string): void {
   throw new Error(
-    `Values '${valuesNotInJSON.join(
-      ', '
-    )}' do not exist in the '${flagName}' of sobject '${sObjectName}' settings `
+    `Values '${valuesNotInJSON.join(', ')}' do not exist in the '${flagName}' of sobject '${sObjectName}' settings `
   );
 }
 function logRemoveMessage(fieldValues: string, sObjectName: string, fieldName: string): void {
-  console.log(
-    `Removing '${fieldValues}' from the '${fieldName}' of sObject '${sObjectName}' settings.`
-  );
+  console.log(`Removing '${fieldValues}' from the '${fieldName}' of sObject '${sObjectName}' settings.`);
 }
 function DeleteSObjectArrayValue(jsonData: templateSchema, sObjectName: string, fieldValues: string[]): templateSchema {
-  const concernedObject = jsonData.sObjects.find((obj) => Object.keys(obj).some(key => key.toLowerCase() === sObjectName));
+  const concernedObject = jsonData.sObjects.find((obj) =>
+    Object.keys(obj).some((key) => key.toLowerCase() === sObjectName)
+  );
   const existingValues = concernedObject ? concernedObject[sObjectName]?.['fieldsToExclude'] : undefined;
   if (concernedObject && existingValues !== undefined) {
     const valuesNotInJSON: string[] = fieldValues.filter(
@@ -123,14 +126,17 @@ function DeleteFieldsToConsiderValues(jsonData: templateSchema, sObjectName: str
   const existingObj = concernedObject ? concernedObject[sObjectName]?.['fieldsToConsider'] : undefined;
   if (concernedObject && existingObj !== undefined) {
     const valuesNotInJSON: string[] = values.filter(
-      (item) => !Object.keys(existingObj).map((val) => val.toLowerCase()).includes(item.toLowerCase())
+      (item) =>
+        !Object.keys(existingObj)
+          .map((val) => val.toLowerCase())
+          .includes(item.toLowerCase())
     );
     if (valuesNotInJSON.length > 0) {
       valuesDoesNotExistError(valuesNotInJSON, 'fieldsToConsider', sObjectName);
     }
     const updatedObj = Object.fromEntries(
-      Object.entries(existingObj).filter(([key]) =>
-        !values.map(item => item.toLowerCase()).includes(key.toLowerCase())
+      Object.entries(existingObj).filter(
+        ([key]) => !values.map((item) => item.toLowerCase()).includes(key.toLowerCase())
       )
     );
     logRemoveMessage(values.join(', '), sObjectName, 'fieldsToConsider');
@@ -146,13 +152,15 @@ function validateFlags(flags: string[]): boolean {
     throw new Error('Error: You must specify a filename using the --template-name flag.');
   } else if (flags.includes('pickLeftFields')) {
     throw new Error('pickLeftFields can not be deleted, it can only be set to true or false using the update command');
-  }
-  else if (!flags.includes('sObject') && (flags.includes('fieldsToExclude') || flags.includes('count') || flags.includes('language'))) {
+  } else if (
+    !flags.includes('sObject') &&
+    (flags.includes('fieldsToExclude') || flags.includes('count') || flags.includes('language'))
+  ) {
     errorMessage = flags.includes('count')
       ? 'Default count can not be deleted! You can update instead.'
-      : (flags.includes('language')
-        ? 'Default language can not be deleted! You can update instead.'
-        : 'fieldsToExclude can only be used if sObject is specified');
+      : flags.includes('language')
+      ? 'Default language can not be deleted! You can update instead.'
+      : 'fieldsToExclude can only be used if sObject is specified';
     throw new Error(errorMessage);
   } else if (flags.includes('sObject') && (flags.includes('namespaceToExclude') || flags.includes('outputFormat'))) {
     errorMessage = flags.includes('namespaceToExclude')
@@ -164,12 +172,20 @@ function validateFlags(flags: string[]): boolean {
 }
 function checkValidObject(flags: flagObj, jsonData: templateSchema): void {
   let concernedObject;
-  if (Object.keys(flags).includes('sObject') && ((Object.keys(flags).includes('fieldsToExclude') || Object.keys(flags).includes('language') || Object.keys(flags).includes('fieldsToConsider') || Object.keys(flags).includes('count')))) {
+  if (
+    Object.keys(flags).includes('sObject') &&
+    (Object.keys(flags).includes('fieldsToExclude') ||
+      Object.keys(flags).includes('language') ||
+      Object.keys(flags).includes('fieldsToConsider') ||
+      Object.keys(flags).includes('count'))
+  ) {
     if (flags.sObject && parseInput([flags.sObject]).length > 1) {
       throw new Error('Object-level values can only be removed from a single object at a time.');
     }
     const sObjectName = (flags.sObject as string).toLowerCase();
-    concernedObject = jsonData.sObjects.find((obj) => Object.keys(obj).some(key => key.toLowerCase() === sObjectName));
+    concernedObject = jsonData.sObjects.find((obj) =>
+      Object.keys(obj).some((key) => key.toLowerCase() === sObjectName)
+    );
     if (!concernedObject || concernedObject === undefined) {
       throw new Error(`The specified sObject '${sObjectName}' does not exist in the data template file.`);
     }
@@ -182,7 +198,11 @@ function validateInput(flags: flagObj, jsonData: templateSchema): templateSchema
     switch (key) {
       case 'fieldsToExclude':
         if ('sObject' in flags && 'fieldsToExclude' in flags && Array.isArray(flags.fieldsToExclude)) {
-          updatedJsonData = DeleteSObjectArrayValue(updatedJsonData, (flags.sObject as string).toLowerCase(), parseInput(flags.fieldsToExclude));
+          updatedJsonData = DeleteSObjectArrayValue(
+            updatedJsonData,
+            (flags.sObject as string).toLowerCase(),
+            parseInput(flags.fieldsToExclude)
+          );
         }
         break;
       case 'language':
@@ -192,17 +212,26 @@ function validateInput(flags: flagObj, jsonData: templateSchema): templateSchema
 
       case 'namespaceToExclude':
       case 'outputFormat': {
-        const fieldValues = (key === 'outputFormat') ? flags.outputFormat : flags.namespaceToExclude;
+        const fieldValues = key === 'outputFormat' ? flags.outputFormat : flags.namespaceToExclude;
         if (Array.isArray(fieldValues)) {
           updatedJsonData = DeleteArrayValue(updatedJsonData, key, parseInput(fieldValues));
         }
         break;
       }
       case 'sObject':
-        updatedJsonData = Object.keys(flags).length === 2 && flags.sObject ? DeletesObject(updatedJsonData, parseInput([flags.sObject])) : updatedJsonData;
+        updatedJsonData =
+          Object.keys(flags).length === 2 && flags.sObject
+            ? DeletesObject(updatedJsonData, parseInput([flags.sObject]))
+            : updatedJsonData;
         break;
       case 'fieldsToConsider':
-        updatedJsonData = flags.fieldsToConsider ? DeleteFieldsToConsiderValues(updatedJsonData, (flags.sObject as string).toLowerCase(), parseInput(flags.fieldsToConsider)) : updatedJsonData;
+        updatedJsonData = flags.fieldsToConsider
+          ? DeleteFieldsToConsiderValues(
+              updatedJsonData,
+              (flags.sObject as string).toLowerCase(),
+              parseInput(flags.fieldsToConsider)
+            )
+          : updatedJsonData;
         break;
       default:
         break;
@@ -283,8 +312,8 @@ export default class TemplateRemove extends SfCommand<TemplateRemoveResult> {
     pickLeftFields: Flags.boolean({
       summary: messages.getMessage('flags.pickLeftFields.summary'),
       description: messages.getMessage('flags.pickLeftFields.description'),
-      char: 'p'
-    })
+      char: 'p',
+    }),
   };
 
   public async run(): Promise<TemplateRemoveResult> {

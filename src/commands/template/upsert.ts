@@ -10,8 +10,13 @@ import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { error } from '@oclif/core/errors';
 import chalk from 'chalk';
-import { arrayFlags } from '../../utils/constants.js';
-import { templateSchema , tempAddFlags , typeSObjectSettingsMap, SObjectItem  } from '../../utils/types.js';
+import {
+  templateSchema,
+  tempAddFlags,
+  typeSObjectSettingsMap,
+  SObjectItem,
+  fieldsToConsiderMap,
+} from '../../utils/types.js';
 import { askQuestion } from './init.js';
 
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);

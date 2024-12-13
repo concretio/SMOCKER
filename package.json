@@ -18,10 +18,8 @@
     "yarn": "^1.22.22"
   },
   "devDependencies": {
-    "@salesforce/cli-plugins-testkit": "^5.3.39",
     "@oclif/plugin-command-snapshot": "^5.1.9",
     "@salesforce/dev-scripts": "^10.2.11",
-    "@salesforce/kit": "^3.2.3",
     "@semantic-release/commit-analyzer": "13.0.0",
     "@semantic-release/github": "11.0.0",
     "@semantic-release/release-notes-generator": "14.0.1",
@@ -73,9 +71,7 @@
     "postpack": "sf-clean --ignore-signing-artifacts",
     "prepack": "sf-prepack",
     "version": "oclif readme",
-    "semantic-release": "semantic-release",
-    "test:nuts": "nyc mocha \"**/*.nut.ts\" --slow 4500 --timeout 600000",
-    "test": "mocha --loader ts-node/esm --recursive test/**/*.nut.ts"
+    "semantic-release": "semantic-release"
   },
   "wireit": {
     "build": {
