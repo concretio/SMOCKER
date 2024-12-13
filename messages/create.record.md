@@ -1,3 +1,11 @@
+
+# flags.alias.summary
+
+For getting the alias details
+
+# flags.alias.description
+
+only for des
 # flags.required-fields.summary
 Only Populate Required Fields
 

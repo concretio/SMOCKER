@@ -34,7 +34,7 @@ import { Messages, Connection } from '@salesforce/core';
 import * as fs from 'fs';
 import * as path from 'path';
 import { updateOrInitializeConfig } from '../template/upsert.js';
-import { getConnectionWithSalesforce } from '../template/validate.js';
+import { connectToSalesforceOrg } from '../template/validate.js';
 import CreateRecord from '../create/record.js';
 
 Messages.importMessagesDirectory(dirname(fileURLToPath(import.meta.url)));
@@ -53,6 +53,7 @@ type Field = {
   'child-dependent-field'?: string;
   [key: string]: any;
 };
+export let conecteOrgCreds: any
 export default class DataGenerate extends CreateRecord {
   public static readonly flags = {
     ...CreateRecord.flags, // Use spread to include all flags from CreateRecord
@@ -65,6 +66,12 @@ export default class DataGenerate extends CreateRecord {
       char: 't',
       summary: messages.getMessage('flags.templateName.summary'),
       description: messages.getMessage('flags.templateName.description'),
+      required: true,
+    }),
+    alias: Flags.string({
+      char: 'a',
+      summary: messages.getMessage('flags.alias.summary'),
+      description: messages.getMessage('flags.alias.description'),
       required: true,
     }),
   };
@@ -152,7 +159,7 @@ export default class DataGenerate extends CreateRecord {
     if (input[controllingFieldName]) {
       const entries = input[controllingFieldName];
       const childFieldName = entries[0]?.childFieldName;
-
+  
       output[controllingFieldName] = {
         type: 'dependent-picklist',
         values: [],
@@ -269,8 +276,9 @@ export default class DataGenerate extends CreateRecord {
         objectsToProcess = [existingObjectConfig];
       }
     }
-
-    const conn = await getConnectionWithSalesforce();
+    const aliasOrUsername = flags.alias.toLowerCase();
+    const conn = await connectToSalesforceOrg(aliasOrUsername);
+    //const conn = await getConnectionWithSalesforce();
 
     const outputData: any[] = [];
 
@@ -301,7 +309,7 @@ export default class DataGenerate extends CreateRecord {
 
       // Initialize dependentPicklistResults for each object
       this.dependentPicklistResults = {};
-
+   
       for (const inputObject of fieldsToPass) {
         let fieldConfig: Field = { type: inputObject.DataType };
 
@@ -352,7 +360,6 @@ export default class DataGenerate extends CreateRecord {
             fieldConfig = { type: inputObject.DataType };
             break;
         }
-
         if (!inputObject.IsDependentPicklist) {
           fieldsObject[inputObject.QualifiedApiName] = fieldConfig;
         }
@@ -378,7 +385,6 @@ export default class DataGenerate extends CreateRecord {
 
       outputData.push(configToWrite);
     }
-
     const outputFile = path.resolve('./generated_output.json');
     // const dataToPass = { sObjects: outputData };
     fs.writeFileSync(

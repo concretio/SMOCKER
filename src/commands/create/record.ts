@@ -120,6 +120,12 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
       char: 'f',
       multiple: true,
     }),
+    alias : Flags.string({
+      summary: messages.getMessage('flags.alias.summary'),
+      description: messages.getMessage('flags.alias.description'),
+      char: 'a',
+      required: true,
+    }),
   };
   public orgConnection: any;
 
@@ -135,7 +141,6 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
     _excludeFieldsSet.clear();
     let sObjectFieldsMap: Map<string, any[]> = new Map();
     sObjectFieldsMap = await this.getProcessedFields();
-
     const conn = this.orgConnection;
     const configPath = path.join(process.cwd(), fieldsConfigFile);
     const configData = fs.readFileSync(configPath, 'utf8');
@@ -245,8 +250,7 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
           countofRecordsToGenerate -= currentChunkSize; 
 
         }
-        fetchedData = allData; 
-      
+        fetchedData = allData;
       }
       else {
         const url = `https://api.mockaroo.com/api/generate.json?key=${this.getApiKey()}&count=${countofRecordsToGenerate}`;
@@ -471,19 +475,6 @@ export default class CreateRecord extends SfCommand<CreateRecordResult> {
                     console.error('Batch failed.');
                     reject(new Error('Batch processing failed.'));
                   }
-              //     else {
-              // //      console.log('Batch completed.');
-              //       progressBar.finish();
-              //       batch.on('response', (rets: BulkQueryBatchResult[]) => {
-              //         const mappedResults: CreateResult[] = rets.map((ret: BulkQueryBatchResult) => ({
-              //           id: ret.id ?? '',
-              //           success: ret.success ?? false,
-              //           errors: ret.errors ?? [],
-              //         }));
-              //          results.push(...mappedResults) // Push results into the results array
-              //       });  
-              //       resolve();
-              //     }
                 }
               })
               .catch((err) => {
