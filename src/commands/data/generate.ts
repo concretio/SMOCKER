@@ -276,7 +276,7 @@ export default class DataGenerate extends CreateRecord {
         objectsToProcess = [existingObjectConfig];
       }
     }
-    const aliasOrUsername = flags.alias.toLowerCase();
+    const aliasOrUsername = flags.alias;
     const conn = await connectToSalesforceOrg(aliasOrUsername);
     //const conn = await getConnectionWithSalesforce();
 
