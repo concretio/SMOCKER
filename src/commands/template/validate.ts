@@ -43,11 +43,10 @@ export async function connectToSalesforceOrg(userNameorAlias: string): Promise<C
 }
 
 export async function validateConfigJson(connection: Connection, configPath: string): Promise<void> {
-  try {
     const spinner = new Spinner(true);
 
     spinner.start('Please wait!! while we validate Objects and Fields');
-    const config: templateSchema = JSON.parse(fs.readFileSync(configPath, 'utf8')) as templateSchema;
+    const config: templateSchema = JSON.parse(fs.readFileSync(configPath, 'utf8')) as templateSchema;    
 
     const invalidObjects: string[] = [];
     const invalidFieldsMap: { [key: string]: string[] } = {};
@@ -60,6 +59,7 @@ export async function validateConfigJson(connection: Connection, configPath: str
     const metadataArray = Array.isArray(metadata) ? metadata : [metadata];
 
     for (const sObjectEntry of config.sObjects) {
+
       const [sObjectName, sObjectData] = Object.entries(sObjectEntry)[0] as [string, sObjectSchemaType];
       const sObjectMeta = metadataArray.find((meta) => meta.fullName === sObjectName) as sObjectMetaType;
 
@@ -69,15 +69,16 @@ export async function validateConfigJson(connection: Connection, configPath: str
       }
 
       const fieldsToExclude = sObjectData['fieldsToExclude'] ?? [];
-      const fieldsToConsider = sObjectData['fieldsToConsider'] ?? {};
+      const fieldsToConsider = sObjectData['fieldsToConsider'] ?? {};         
       
-      if (sObjectData['pickLeftFields'] === false && Object.keys(fieldsToExclude).length === 0) {
-        console.warn(
+      if (sObjectData['pickLeftFields'] === false && Object.keys(fieldsToConsider).length === 0) {
+        throw new Error(
           chalk.yellow(
-            `Warning:[${sObjectName}] No fields are found to generate data. Make sure to set 'pick-left-fields' to 'true' or add fields to 'fields-to-consider'`
+            `Warning: [${sObjectName}] No fields are found to generate data. Make sure to set 'pick-left-fields' to 'true' or add fields to 'fields-to-consider'`
           )
         );
       }
+      
       const getAllFields: string[] = sObjectMeta.fields
         ? sObjectMeta.fields
             .filter((field: Types.Field) => field.fullName != null)
@@ -104,6 +105,8 @@ export async function validateConfigJson(connection: Connection, configPath: str
       if (allInvalidFields.length > 0) {
         invalidFieldsMap[sObjectName] = allInvalidFields;
       }
+    
+      
     }
     spinner.stop('');
     if (invalidObjects.length > 0) {
@@ -131,9 +134,6 @@ export async function validateConfigJson(connection: Connection, configPath: str
         chalk.green(`Successfully validated '${path.basename(configPath)}' and no invalid object/fields were found!`)
       );
     }
-  } catch (err) {
-    console.error('Error: While validating config JSON.', err);
-  }
 }
 
 export class TemplateValidate extends SfCommand<TemplateValidateResult> {
