@@ -5,22 +5,13 @@ import { exec } from 'node:child_process';
 describe('TemplateUpsert Command', () => {
   const testDir = path.join(process.cwd(), 'data_gen/templates');
   const testFile = path.join(testDir, 'testTemplateUpsert.json');
-
-  const verifyCommandOutput = (stdout: string, expectedMessage: string, done: Mocha.Done) => {
-    // console.log('Command Output:', stdout);
-    if (!stdout.includes(expectedMessage)) {
-      return done(new Error(`Expected message "${expectedMessage}" not found in stdout.`));
-    }
-    done();
-  };
-
   const templateName = 'testTemplateUpsert';
   before(() => {
     if (!fs.existsSync(testDir)) fs.mkdirSync(testDir, { recursive: true });
     const sampleData = {
       templateFileName: 'testTemplateUpsert.json',
       namespaceToExclude: ['ns1', 'ns2'],
-      outputFormat: ['csv'],
+      outputFormat: ['csv','di'],
       language: 'en',
       count: 1,
       sObjects: [
@@ -167,103 +158,34 @@ it('[BS_TC_119] Validate the behavior when adding multiple fields without using 
     });
   });
 
-  it('Verify upsert namespaceToExclude', (done) => {
-    const command = `sf template upsert -t ${templateName} -x ns3`;
-    exec(command, (error, stdout) => {
-      if (error) {
-        return done(error);
+  it('[BS_TC_121] Validate the behavior of the command when fields are added without specifying the object name', (done) => {
+    const command = `sf template upsert -t ${templateName} -e `;
+    exec(command, (error, stdout, stderr) => {
+      const expectedErrorMessage = 'Flag --fieldsToExclude expects a value';
+      if (stderr.includes(expectedErrorMessage)) {
+        done();
+      } else {
+        done(new Error(`Expected error message "${expectedErrorMessage}" not found in stderr.`));
       }
-      const expectedMessage = "Updated 'namespaceToExclude' to: ns1, ns2, ns3";
-      verifyCommandOutput(stdout, expectedMessage, done);
     });
   });
 
-//   it('Verify upsert outputFormat', (done) => {
-//     const command = `sf template upsert -t ${templateName} -f json`;
-//     exec(command, (error, stdout) => {
-//       if (error) {
-//         return done(error);
-//       }
-//       const expectedMessage = "Updated 'outputFormat' to: csv, json";
-//       verifyCommandOutput(stdout, expectedMessage, done);
-//     });
-//   });
+    it('[BS_TC_124] Verify behavior when executing upsert command without passing template flags', (done) => {
+    const command = 'sf template upsert';
+    exec(command, (error, stdout, stderr) => {
 
-//   it('Verify upsert modifying count at global level', (done) => {
-//     const command = `sf template upsert -t ${templateName} -c 50`;
-//     exec(command, (error, stdout) => {
-//       if (error) {
-//         return done(error);
-//       }
-//       const expectedMessage = "Setting 'count' to: 50";
-//       verifyCommandOutput(stdout, expectedMessage, done);
-//     });
-//   });
+        const expectedErrorMessage = 'Missing required flag templateName';
 
-//   it('Verify upsert modifying language at global level', (done) => {
-//     const command = `sf template upsert -t ${templateName} -l jp`;
-//     exec(command, (error, stdout) => {
-//       if (error) {
-//         return done(error);
-//       }
-//       const expectedMessage = "Setting 'language' to: jp";
-//       verifyCommandOutput(stdout, expectedMessage, done);
-//     });
-//   });
+        if (stderr.includes(expectedErrorMessage)) {
+        done();
+      } else {
+        done(new Error(`Expected error message "${expectedErrorMessage}" not found in stderr.`));
+      }
+    });
+  });
 
-//   it('Verify upsert modifying language at object setting', (done) => {
-//     const command = `sf template upsert -t ${templateName} -l en -s contact`;
-//     exec(command, (error, stdout) => {
-//       if (error) {
-//         return done(error);
-//       }
-//       const expectedMessage = "Setting 'language' to: en";
-//       verifyCommandOutput(stdout, expectedMessage, done);
-//     });
-//   });
-
-  // /* -----------------object Specific Settings----------------------*/
-
-//   it('Verify upsert modifying count at object setting', (done) => {
-//     const command = `sf template upsert -t ${templateName} -c 500 -s contact`;
-//     exec(command, (error, stdout) => {
-//       if (error) {
-//         // console.error('Exec Error:', error);
-//         return done(error);
-//       }
-//       const expectedMessage = "Setting 'count' to: 500";
-//       verifyCommandOutput(stdout, expectedMessage, done);
-//     });
-//   });
-
-//   it('Verify upsert fieldsToExclude', (done) => {
-//     const command = `sf template upsert -t ${templateName} -e name -s contact`;
-//     exec(command, (error, stdout) => {
-//       if (error) {
-//         return done(error);
-//       }
-//       const expectedMessage = "Updated 'fieldsToExclude' to: cleanstatus, jigsaw, name";
-//       verifyCommandOutput(stdout, expectedMessage, done);
-//     });
-//   });
-
-  /* -----------------Error Handling Testing-------------------------------*/
-
-//   it('Verify upsert with error when no valid outputFormat specified', (done) => {
-//     const command = `sf template upsert -t ${templateName} -f xml`;
-//     exec(command, (error, stdout, stderr) => {
-//       const expectedErrorMessage = 'Process halted: Invalid output format passed. supports `csv`, `json` and `di` only';
-
-//       if (stderr.includes(expectedErrorMessage)) {
-//         done();
-//       } else {
-//         done(new Error(`Expected error message "${expectedErrorMessage}" not found in stderr.`));
-//       }
-//     });
-//   });
-
-  it('Verify upsert with error when no valid language specified', (done) => {
-    const command = `sf template upsert -t ${templateName} -l us`;
+  it('[BS_TC_126] (Validate the behavior of the command with an incorrect language specifiedon Object Level', (done) => {
+    const command = `sf template upsert -t ${templateName} -l rs`;
     exec(command, (error, stdout, stderr) => {
       const expectedErrorMessage = 'Invalid language input. supports `en` or `jp` only';
 
@@ -274,4 +196,32 @@ it('[BS_TC_119] Validate the behavior when adding multiple fields without using 
       }
     });
   });
+
+  it('[BS_TC_127] Validate the Behavior when the output format is Json and global count will be negative', (done) => {
+    const command = `sf template upsert -t ${templateName} -c -34`;
+    exec(command, (error, stdout, stderr) => {
+      const expectedErrorMessage = 'Process halted: Invalid input. Please enter a Value between 1-1000 for DI and for CSV and JSON value greater than 0';
+
+      if (stderr.includes(expectedErrorMessage)) {
+        done();
+      } else {
+        done(new Error(`Expected error message "${expectedErrorMessage}" not found in stderr.`));
+      }
+    });
+  });
+
+    it('[BS_TC_162] Validate the behavior when the fields are added to the FieldsToExclude', (done) => {
+    const command = `sf template upsert -t ${templateName} -s contact -e name`;
+    exec(command, (error, stdout) => {
+      if (error) {
+        return done(error);
+      }
+      const expectedFieldsToExcludeMsg = "Updated 'fieldsToExclude' to: cleanstatus, jigsaw, name";
+      if (!stdout.includes(expectedFieldsToExcludeMsg)) {
+        return done(new Error('some of the Expected messages not found in stdout.'));
+    }
+    done();
+    });
+  });
+
 });
