@@ -164,7 +164,7 @@ export class TemplateValidate extends SfCommand<TemplateValidateResult> {
       ? flags['templateName']
       : flags['templateName'] + '.json';
     const templateDirPath = path.join(currWorkingDir, `data_gen/templates/${sanitizeFilename}`);
-    const userNameOrAlias = flags.alias.toLowerCase();
+    const userNameOrAlias = flags.alias;
     if (fs.existsSync(templateDirPath)) {
       const connection = await connectToSalesforceOrg(userNameOrAlias);
       console.log(chalk.cyan('Success: SF Connection established.'));

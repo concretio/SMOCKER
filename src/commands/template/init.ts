@@ -522,9 +522,9 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
     );
     if (wantToValidate.toLowerCase() === 'yes' || wantToValidate.toLowerCase() === 'y') {
       const userAliasorUsernName = await askQuestion(
-        chalk.bold('Please enter the alias or username of the Salesforce org you want to connect to:'),
+        chalk.bold('Enter the alias or username for the Salesforce org you wish to connect to (case-sensetive)'),
       );
-      const conn = await  connectToSalesforceOrg(userAliasorUsernName.toLowerCase())
+      const conn = await  connectToSalesforceOrg(userAliasorUsernName)
       await validateConfigJson(conn, filePath);
     }
 
