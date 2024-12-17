@@ -68,6 +68,16 @@ export async function validateConfigJson(connection: Connection, configPath: str
         continue;
       }
 
+      const fieldsToExclude = sObjectData['fieldsToExclude'] ?? [];
+      const fieldsToConsider = sObjectData['fieldsToConsider'] ?? {};
+      
+      if (sObjectData['pickLeftFields'] === false && Object.keys(fieldsToExclude).length === 0) {
+        console.warn(
+          chalk.yellow(
+            `Warning:[${sObjectName}] No fields are found to generate data. Make sure to set 'pick-left-fields' to 'true' or add fields to 'fields-to-consider'`
+          )
+        );
+      }
       const getAllFields: string[] = sObjectMeta.fields
         ? sObjectMeta.fields
             .filter((field: Types.Field) => field.fullName != null)
@@ -80,9 +90,6 @@ export async function validateConfigJson(connection: Connection, configPath: str
       if (sObjectMeta.nameField) {
         getAllFields.push('name');
       }
-
-      const fieldsToExclude = sObjectData['fieldsToExclude'] ?? [];
-      const fieldsToConsider = sObjectData['fieldsToConsider'] ?? {};
 
       const invalidFieldsInConisder = Object.keys(fieldsToConsider).filter((field) => {
         // checking for dependent picklist fields(dp-) in the schema
