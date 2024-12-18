@@ -96,6 +96,9 @@ export type flagObj = {
   pickLeftFields?: boolean;
   fieldsToConsider?: string[];
 };
+export type flagsForInit = {
+  default?: boolean;
+};
 export type namespaceAndOutputSchema = {
   namespaceToExclude: string[];
   outputFormat: string[];
