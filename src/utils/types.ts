@@ -120,8 +120,10 @@ export type sObjectMetaType = {
 
 export type sObjectSchemaType = {
   fieldsToExclude?: string[];
+  fieldsToConsider?: fieldsToConsiderMap;
   count?: number;
   language?: string;
+  pickLeftFields?: boolean;
 };
 export type fieldsToConsiderMap = {
   [key: string]: string[] | string;
