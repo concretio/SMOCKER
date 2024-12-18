@@ -29,26 +29,21 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import * as fs from 'fs';
 import * as path from 'path';
-// import { fileURLToPath } from 'url';
-// import * as readline from 'readline'; 
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import { Messages } from '@salesforce/core';
 import { Connection } from '@salesforce/core';
 import fetch from 'node-fetch';
-// import * as cliProgress from 'cli-progress';
 import { Progress }  from '@salesforce/sf-plugins-core';
 import chalk  from 'chalk';
 import { templateAddFlags } from '../template/upsert.js';
 import { MOCKAROO_API_CALLS_PER_DAY, MOCKAROO_CHUNK_SIZE } from '../../utils/constants.js';
-// import { title } from 'process';
-
 
 const fieldsConfigFile = 'generated_output.json';
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'create.record');
 let depthForRecord = 0;
-// let orgConnection: any;
 export type CreateRecordResult = { path: string };
+
 type BulkQueryBatchResult = {
   batchId?: string;
   id?: string | null;
