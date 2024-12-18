@@ -200,7 +200,8 @@ it('[BS_TC_119] Validate the behavior when adding multiple fields without using 
   it('[BS_TC_127] Validate the Behavior when the output format is Json and global count will be negative', (done) => {
     const command = `sf template upsert -t ${templateName} -c -34`;
     exec(command, (error, stdout, stderr) => {
-      const expectedErrorMessage = 'Process halted: Invalid input. Please enter a Value between 1-1000 for DI and for CSV and JSON value greater than 0';
+      
+      const expectedErrorMessage = 'Process halted: Invalid input. Please enter a Value between 1-200 for DI and for CSV and JSON value greater than 0';
 
       if (stderr.includes(expectedErrorMessage)) {
         done();
