@@ -260,8 +260,6 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
           .filter(Boolean)
       : [];
 
-    // const validFormats = new Set(['csv', 'json', 'di']);
-    // && outputFormat.every((format) => validFormats.has(format))
     let outputFormat: string[] = [];
     while (!(outputFormat.length > 0)) {
       const outputFormatValue = await runMultiSelectPrompt();
@@ -270,8 +268,6 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         console.log(chalk.yellow('Invalid input. Please enter only CSV, JSON, or DI.'));
       }
     }
-
-    /* generate data in language */
 
     const language = await runSelectPrompt('In which language would you like to generate test data?', languageChoices);
 
@@ -285,7 +281,6 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       );
       if (
         preSanitizedCount > 0 &&
-        outputFormat.includes('di') &&
         !isNaN(preSanitizedCount)
       ) {
         count = preSanitizedCount;
@@ -295,7 +290,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         break;
       }
        else {
-        console.log(chalk.yellow('Enter a valid number '));
+        console.log(chalk.yellow('Invalid input. Please enter a valid number'));
       }
     }
 
@@ -368,7 +363,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
 
       // Note:languageChoices is defined above already
       const ovrrideSelectedLangVal = await runSelectPrompt(
-        `[${sObjectName}] Language in which test data should be generated`,
+        `[${sObjectName} - Language] Language in which test data should be generated`,
         languageChoices
       );
       if (ovrrideSelectedLangVal) {
@@ -379,24 +374,24 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
       let overrideCount = null;
       while (overrideCount === null) {
         const customCountInput = await askQuestion(
-          chalk.white.bold(`[${sObjectName}]`) + ' Count for generating records'
+          chalk.white.bold(`[${sObjectName} - Count]`) + ' Count for generating records'
         );
         if (!customCountInput) {
           break;
         }
         overrideCount = parseInt(customCountInput, 10);
 
-        if (overrideCount > 0 && overrideCount <= 1000 && !isNaN(overrideCount)) {
+        if (overrideCount > 0 && !isNaN(overrideCount)) {
           sObjectSettingsMap[sObjectName].count = overrideCount;
           break;
         } else {
-          console.log(chalk.yellow('Invalid input. Please enter a number between 1 and 1000'));
+          console.log(chalk.yellow('Invalid input. Please enter a valid number'));
           overrideCount = null;
         }
       }
 
       const fieldsToExcludeInput = await askQuestion(
-        chalk.white.bold(`[${sObjectName}]`) +
+        chalk.white.bold(`[${sObjectName} - fieldsToExclude]`) +
           ' Provide fields(API names) to exclude ' +
           chalk.dim('(comma-separated)'),
         ''
@@ -414,19 +409,18 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
 
       console.log(
         chalk.blue.bold(
-          'Note: In case of dependent picklist fields, value should be defined in order.Eg: (dp-Year:[2024], dp-Month:[2])'
+          'Note: In case of dependent picklist fields, value should be defined in order.(Eg: dp-Year: [2024], dp-Month: [2])'
         )
       );
 
       const fieldsToConsiderInput = await askQuestion(
-        chalk.white.bold(`[${sObjectName} - fields to consider]`) +
-          ' Provide field names to be considered for generating data. (E.g. Phone: ["909090", "6788489"], Fax )',
+        chalk.white.bold(`[${sObjectName} - fieldsToConsider]`) +
+          ' Provide field(API names) to be considered for generating data. (E.g. Phone: [909090, 6788489], Fax )',
         ''
       );
 
       const fieldsToConsider: { [key: string]: string[] | string } = {};
 
-      // const regex = /(\w+):\s*(\[[^\]]*\])|(\w+)/g;
       const regex = /([\w-]+):\s*(\[[^\]]*\])|([\w-]+)/g;
 
       let match;
@@ -474,7 +468,7 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
         { name: 'false', message: 'false', value: 'false', hint: '' },
       ];
       const pickLeftFieldsInput = await runSelectPrompt(
-        `[${sObjectName} - pick-left-fields] Want to generate data for fields neither in 'fields to consider' nor in 'fields to exclude'`,
+        `[${sObjectName} - pickLeftFields] Want to generate data for fields neither in 'fields to consider' nor in 'fields to exclude'`,
         pickLeftFields
       );
       if (pickLeftFieldsInput) {
@@ -531,7 +525,4 @@ export default class SetupInit extends SfCommand<SetupInitResult> {
     console.log(chalk.green(`Success: ${templateFileName} created at ${filePath}`));
     return config;
   }
-  // log(arg0: string) {
-  //   throw new Error('Method not implemented.');
-  // }
 }
