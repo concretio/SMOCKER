@@ -6,8 +6,9 @@ import { Messages } from '@salesforce/core';
 import { SfCommand, Flags } from '@salesforce/sf-plugins-core';
 import Enquirer from 'enquirer';
 import { connectToSalesforceOrg, validateConfigJson } from '../template/validate.js';
-import { SetupInitResult, typeSObjectSettingsMap, flagsForInit } from '../../utils/types.js';
+import { SetupInitResult, typeSObjectSettingsMap, flagsForInit, fieldsToConsiderMap } from '../../utils/types.js';
 import { languageChoices, outputChoices } from '../../utils/constants.js';
+// import { promises } from 'node:dns';
 // Import messages from the specified directory
 Messages.importMessagesDirectoryFromMetaUrl(import.meta.url);
 const messages = Messages.loadMessages('smocker-concretio', 'template.init');
@@ -228,11 +229,64 @@ async function getOutputFormat(): Promise<string[]> {
   }
   return outputFormat;
 }
+function handleFieldsToConsider(fieldsToConsiderInput: string): fieldsToConsiderMap {
+  const fieldsToConsider: fieldsToConsiderMap = {};
+
+  // const regex = /(\w+):\s*(\[[^\]]*\])|(\w+)/g;
+  const regex = /([\w-]+):\s*(\[[^\]]*\])|([\w-]+)/g;
+
+  let match;
+  while ((match = regex.exec(fieldsToConsiderInput)) !== null) {
+    const key = match[1] || match[3];
+    const value = match[2];
+    if (key && value) {
+      const fieldValues = value
+        .slice(1, -1)
+        .split(',')
+        .map((v) => v.trim());
+      fieldsToConsider[key] = fieldValues;
+    } else {
+      fieldsToConsider[key] = [];
+    }
+
+    if (key.startsWith('dp-')) {
+      if (value) {
+        const dpFieldValue = value.slice(1, -1).trim();
+        fieldsToConsider[key] = dpFieldValue;
+      } else {
+        fieldsToConsider[key] = '';
+      }
+    }
+  }
+  return fieldsToConsider;
+}
+async function handleSObjectSettingsMap(
+  sObjectSettingsMap: { [key: string]: typeSObjectSettingsMap },
+  sObjectName: string
+): Promise<{ [key: string]: typeSObjectSettingsMap }> {
+  let overrideCount = null;
+  while (overrideCount === null) {
+    const customCountInput = await askQuestion(chalk.white.bold(`[${sObjectName}]`) + ' Count for generating records');
+    if (!customCountInput) {
+      break;
+    }
+    overrideCount = parseInt(customCountInput, 10);
+
+    if (overrideCount > 0 && overrideCount <= 1000 && !isNaN(overrideCount)) {
+      sObjectSettingsMap[sObjectName].count = overrideCount;
+      break;
+    } else {
+      console.log(chalk.yellow('Invalid input. Please enter a number between 1 and 1000'));
+      overrideCount = null;
+    }
+  }
+  return sObjectSettingsMap;
+}
 async function showConditionalCommand(
   overWriteGlobalSettings: string,
   objectsToConfigure: string[],
   sObjectSettingsMap: { [key: string]: typeSObjectSettingsMap }
-): Promise<string> {
+): Promise<void> {
   while (overWriteGlobalSettings.toLowerCase() === 'yes' || overWriteGlobalSettings.toLowerCase() === 'y') {
     const objInTemplateChoices = objectsToConfigure.map((obj) => ({
       name: obj,
@@ -275,6 +329,7 @@ async function showConditionalCommand(
       }
     }
     sObjectSettingsMap[sObjectName] = {};
+    sObjectSettingsMap = await handleSObjectSettingsMap(sObjectSettingsMap, sObjectName);
 
     // Note:languageChoices is defined above already
     const ovrrideSelectedLangVal = await runSelectPrompt(
@@ -286,24 +341,6 @@ async function showConditionalCommand(
     }
 
     // object record count
-    let overrideCount = null;
-    while (overrideCount === null) {
-      const customCountInput = await askQuestion(
-        chalk.white.bold(`[${sObjectName}]`) + ' Count for generating records'
-      );
-      if (!customCountInput) {
-        break;
-      }
-      overrideCount = parseInt(customCountInput, 10);
-
-      if (overrideCount > 0 && overrideCount <= 1000 && !isNaN(overrideCount)) {
-        sObjectSettingsMap[sObjectName].count = overrideCount;
-        break;
-      } else {
-        console.log(chalk.yellow('Invalid input. Please enter a number between 1 and 1000'));
-        overrideCount = null;
-      }
-    }
 
     const fieldsToExcludeInput = await askQuestion(
       chalk.white.bold(`[${sObjectName}]`) + ' Provide fields(API names) to exclude ' + chalk.dim('(comma-separated)'),
@@ -332,35 +369,7 @@ async function showConditionalCommand(
       ''
     );
 
-    const fieldsToConsider: { [key: string]: string[] | string } = {};
-
-    // const regex = /(\w+):\s*(\[[^\]]*\])|(\w+)/g;
-    const regex = /([\w-]+):\s*(\[[^\]]*\])|([\w-]+)/g;
-
-    let match;
-    while ((match = regex.exec(fieldsToConsiderInput)) !== null) {
-      const key = match[1] || match[3];
-      const value = match[2];
-      if (key && value) {
-        const fieldValues = value
-          .slice(1, -1)
-          .split(',')
-          .map((v) => v.trim());
-        fieldsToConsider[key] = fieldValues;
-      } else {
-        fieldsToConsider[key] = [];
-      }
-
-      if (key.startsWith('dp-')) {
-        if (value) {
-          const dpfieldValue = value.slice(1, -1).trim();
-          fieldsToConsider[key] = dpfieldValue;
-        } else {
-          fieldsToConsider[key] = '';
-        }
-      }
-    }
-
+    const fieldsToConsider: fieldsToConsiderMap = handleFieldsToConsider(fieldsToConsiderInput);
     const conflictingFields = Object.keys(fieldsToConsider).filter((field) =>
       fieldsToExclude.includes(field.toLowerCase())
     );
@@ -404,7 +413,6 @@ async function showConditionalCommand(
       'n'
     );
   }
-  return 'okay';
 }
 
 /*
