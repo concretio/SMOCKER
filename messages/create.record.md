@@ -1,3 +1,6 @@
+# summary
+
+Create Records
 
 # flags.alias.summary
 
@@ -18,10 +21,15 @@ Use `--templateName` or `-t` to specify the name of the data template to be util
 # flags.include-files.summary
 Speciy file path for upload files
 
-# flags.confDir.summary
+# flags.templateName.summary
 
 Template according to which we need to generate data
 
-# flags.confDir.description
+# flags.templateName.description
 
 Use `-f` to specify the path of file.
+
+# Examples
+
+- `sf create record -t <template-name> <global flags with values -f,-x,-c,-l>`
+- `sf create create -t <template-name> -o <object-name> <object flags with values -e,-c,-l>`

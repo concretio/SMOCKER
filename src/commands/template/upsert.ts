@@ -180,7 +180,7 @@ export const templateAddFlags = {
   }),
 };
 /* checking valid directory structure for json data template */
-function getTemplateJsonData(templateName: string): string {
+export function getTemplateJsonData(templateName: string): string {
   const filename = templateName.endsWith('.json') ? templateName : `${templateName}.json`;
   if (!filename) {
     throw error('Error: You must specify a filename using the --template-name flag.');
