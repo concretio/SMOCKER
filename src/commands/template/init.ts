@@ -243,7 +243,7 @@ function handleFieldsToConsider(fieldsToConsiderInput: string): fieldsToConsider
       const fieldValues = value
         .slice(1, -1)
         .split(',')
-        .map((v) => v.trim());
+        .map((v) => v.trim().replace(/^'|'$/g, '').replace(/^"|"$/g, ''));
       fieldsToConsider[key] = fieldValues;
     } else {
       fieldsToConsider[key] = [];

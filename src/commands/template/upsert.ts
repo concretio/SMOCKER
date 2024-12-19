@@ -39,7 +39,7 @@ export function handleFieldsToConsider(sObjectConfig: typeSObjectSettingsMap, in
       const fieldValues = value
         .slice(1, -1)
         .split(',')
-        .map((v) => v.trim());
+        .map((v) => v.trim().replace(/^'|'$/g, '').replace(/^"|"$/g, ''));
 
       const fieldValuesSet = new Set([...(fieldsToConsider[key] || []), ...fieldValues]);
       fieldsToConsider[key] = Array.from(fieldValuesSet);
